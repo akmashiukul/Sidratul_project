@@ -277,7 +277,7 @@
                         </div>
                         <div>
                             <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase">Total Paid</div>
-                            <div style="font-size:22px;font-weight:800;color:var(--text)" id="pay-stat-paid">$0.00</div>
+                            <div style="font-size:22px;font-weight:800;color:var(--text)" id="pay-stat-paid">৳0.00</div>
                         </div>
                     </div>
                 </div>
@@ -288,7 +288,7 @@
                         </div>
                         <div>
                             <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase">Pending Dues</div>
-                            <div style="font-size:22px;font-weight:800;color:#b91c1c" id="pay-stat-due">$0.00</div>
+                            <div style="font-size:22px;font-weight:800;color:#b91c1c" id="pay-stat-due">৳0.00</div>
                         </div>
                     </div>
                 </div>
@@ -392,7 +392,7 @@
                     </div>
                     <div class="text-end">
                         <small style="color:var(--muted);font-weight:600;display:block">Amount Due</small>
-                        <strong id="pn-amount" style="font-size:20px;color:#7c3aed">$150.00</strong>
+                        <strong id="pn-amount" style="font-size:20px;color:#7c3aed">৳3,500.00</strong>
                     </div>
                 </div>
 
@@ -675,8 +675,6 @@
         tbody.innerHTML = applications.length ? applications.map((r,i) => `<tr><td>${i+1}</td><td><strong>${esc(r.room_number || 'General')}</strong></td><td>${esc(r.application_date)}</td><td>${badge(r.application_status)}</td></tr>`).join('') : emptyRow(4,'No room applications submitted yet.');
     }
 
-    let currentPayId = null;
-
     async function loadPayments() {
         const data = await apiFetch('/payments') || [];
         const tbody = document.getElementById('payments-table');
@@ -692,8 +690,8 @@
         const elPaid = document.getElementById('pay-stat-paid');
         const elDue = document.getElementById('pay-stat-due');
         const elCount = document.getElementById('pay-stat-count');
-        if (elPaid) elPaid.textContent = '$' + totalPaid.toFixed(2);
-        if (elDue) elDue.textContent = '$' + totalDue.toFixed(2);
+        if (elPaid) elPaid.textContent = '৳' + totalPaid.toLocaleString('en-BD', { minimumFractionDigits: 2 });
+        if (elDue) elDue.textContent = '৳' + totalDue.toLocaleString('en-BD', { minimumFractionDigits: 2 });
         if (elCount) elCount.textContent = data.length;
 
         tbody.innerHTML = data.length ? data.map((r,i) => {
@@ -709,7 +707,7 @@
             return `<tr>
                 <td>${i+1}</td>
                 <td><strong>${esc(r.payment_month)}</strong></td>
-                <td>$${Number(r.amount).toFixed(2)}</td>
+                <td>৳${Number(r.amount).toLocaleString('en-BD', { minimumFractionDigits: 2 })}</td>
                 <td>${esc(r.payment_method || 'N/A')}</td>
                 <td><code style="font-size:12px;color:#7c3aed">${esc(r.transaction_id || '—')}</code></td>
                 <td>${badge(r.payment_status)}</td>
@@ -721,7 +719,7 @@
     function openPayNowModal(id, month, amount) {
         currentPayId = id;
         document.getElementById('pn-month').textContent = month;
-        document.getElementById('pn-amount').textContent = '$' + Number(amount).toFixed(2);
+        document.getElementById('pn-amount').textContent = '৳' + Number(amount).toLocaleString('en-BD', { minimumFractionDigits: 2 });
         document.getElementById('pn-trx').value = '';
         document.getElementById('pn-error').classList.add('d-none');
         updatePayInstructions();
@@ -781,7 +779,7 @@
     function openReceiptModal(id, month, amount, method, trx) {
         document.getElementById('rc-id').textContent = '#' + id;
         document.getElementById('rc-month').textContent = month;
-        document.getElementById('rc-amount').textContent = '$' + Number(amount).toFixed(2);
+        document.getElementById('rc-amount').textContent = '৳' + Number(amount).toLocaleString('en-BD', { minimumFractionDigits: 2 });
         document.getElementById('rc-method').textContent = method || 'Online';
         document.getElementById('rc-trx').textContent = trx || 'N/A';
         new bootstrap.Modal(document.getElementById('receipt-modal')).show();
@@ -796,7 +794,7 @@
     async function loadFood() {
         const data = await apiFetch('/food_orders') || [];
         const tbody = document.getElementById('food-table');
-        tbody.innerHTML = data.length ? data.map((r,i) => `<tr><td>${i+1}</td><td>${esc(r.food_name)}</td><td>${esc(r.quantity)}</td><td>$${Number(r.price).toFixed(2)}</td><td>${badge(r.delivery_status)}</td></tr>`).join('') : emptyRow(5,'No food orders yet.');
+        tbody.innerHTML = data.length ? data.map((r,i) => `<tr><td>${i+1}</td><td>${esc(r.food_name)}</td><td>${esc(r.quantity)}</td><td>৳${Number(r.price).toLocaleString('en-BD', { minimumFractionDigits: 2 })}</td><td>${badge(r.delivery_status)}</td></tr>`).join('') : emptyRow(5,'No food orders yet.');
     }
 
     // ── FORM MODAL ──

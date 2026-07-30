@@ -761,8 +761,8 @@
                     <input type="text" class="form-control" id="gb-month" placeholder="e.g. August 2026">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-600">Amount per Student ($) <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" id="gb-amount" value="150">
+                    <label class="form-label fw-600">Amount per Student (৳) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="gb-amount" value="3500">
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
@@ -955,6 +955,7 @@ function renderTable(sectionId, data) {
         const cells = cfg.columns.map(col => {
             const val = row[col];
             if (STATUS_COLS.has(col)) return `<td>${badge(val)}</td>`;
+            if (col === 'amount' && val != null) return `<td><strong>৳${Number(val).toLocaleString('en-BD', { minimumFractionDigits: 2 })}</strong></td>`;
             return `<td>${esc(val)}</td>`;
         }).join('');
 
@@ -1308,7 +1309,7 @@ async function fetchTechReports() {
         }).join('');
 function openGenBillsModal() {
     document.getElementById('gb-month').value = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-    document.getElementById('gb-amount').value = 150;
+    document.getElementById('gb-amount').value = 3500;
     document.getElementById('gb-error').classList.add('d-none');
     new bootstrap.Modal(document.getElementById('gen-bills-modal')).show();
 }

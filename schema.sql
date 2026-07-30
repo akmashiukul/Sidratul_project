@@ -170,10 +170,10 @@ INSERT INTO APPLICATION (student_id, room_id, application_date, application_stat
 
 -- Payments
 INSERT INTO PAYMENT (student_id, amount, payment_month, payment_method, transaction_id, payment_status) VALUES
-(1, 150.00, 'July 2026', 'bKash', 'TRX987123', 'Paid'),
-(1, 150.00, 'August 2026', 'bKash', 'TRX987124', 'Processing'),
-(2, 150.00, 'July 2026', 'Nagad', 'TRX654321', 'Paid'),
-(3, 150.00, 'July 2026', 'N/A', NULL, 'Unpaid');
+(1, 3500.00, 'July 2026', 'bKash', 'TRX987123', 'Paid'),
+(1, 3500.00, 'August 2026', 'bKash', 'TRX987124', 'Processing'),
+(2, 3500.00, 'July 2026', 'Nagad', 'TRX654321', 'Paid'),
+(3, 3500.00, 'July 2026', 'N/A', NULL, 'Unpaid');
 
 -- Complaints
 INSERT INTO COMPLAINT (student_id, complaint_text, complaint_status) VALUES
