@@ -343,7 +343,7 @@
                 </div>
                 <div class="table-responsive">
                     <table class="table">
-                        <thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Price</th><th>Status</th></tr></thead>
+                        <thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Total (৳)</th><th>Delivery</th><th>Payment Status</th></tr></thead>
                         <tbody id="food-table"></tbody>
                     </table>
                 </div>
@@ -694,7 +694,17 @@
         if (elDue) elDue.textContent = '৳' + totalDue.toLocaleString('en-BD', { minimumFractionDigits: 2 });
         if (elCount) elCount.textContent = data.length;
 
-        tbody.innerHTML = data.length ? data.map((r,i) => {
+        if (!data.length) {
+            const rooms = await apiFetch('/rooms') || [];
+            const hasRoom = rooms.some(r => Number(r.is_my_room) === 1);
+            const emptyMsg = hasRoom 
+                ? 'No payment invoices issued yet.'
+                : 'No active room allocation — Monthly hostel bills will be generated once a room is assigned.';
+            tbody.innerHTML = emptyRow(7, emptyMsg);
+            return;
+        }
+
+        tbody.innerHTML = data.map((r,i) => {
             let actionBtn = '';
             if (r.payment_status === 'Unpaid') {
                 actionBtn = `<button class="btn btn-sm px-3 fw-bold" style="background:#7c3aed;color:#fff;border-radius:8px;font-size:12px" onclick="openPayNowModal(${r.payment_id},'${esc(r.payment_month)}',${r.amount})"><i class="fa-solid fa-credit-card me-1"></i>Pay Now</button>`;
@@ -713,7 +723,7 @@
                 <td>${badge(r.payment_status)}</td>
                 <td>${actionBtn}</td>
             </tr>`;
-        }).join('') : emptyRow(7,'No payment records found.');
+        }).join('');
     }
 
     function openPayNowModal(id, month, amount) {
@@ -794,7 +804,26 @@
     async function loadFood() {
         const data = await apiFetch('/food_orders') || [];
         const tbody = document.getElementById('food-table');
-        tbody.innerHTML = data.length ? data.map((r,i) => `<tr><td>${i+1}</td><td>${esc(r.food_name)}</td><td>${esc(r.quantity)}</td><td>৳${Number(r.price).toLocaleString('en-BD', { minimumFractionDigits: 2 })}</td><td>${badge(r.delivery_status)}</td></tr>`).join('') : emptyRow(5,'No food orders yet.');
+        tbody.innerHTML = data.length ? data.map((r,i) => {
+            const totalPrice = Number(r.price || 0) * Number(r.quantity || 1);
+            let payBadge = badge(r.payment_status || 'Unpaid');
+            if (r.payment_status === 'Unpaid' && r.payment_id) {
+                payBadge = `<button class="btn btn-sm px-2 py-1 fw-bold" style="background:#7c3aed;color:#fff;border-radius:6px;font-size:11px" onclick="openPayNowModal(${r.payment_id},'Food Order #${r.order_id}: ${esc(r.food_name)}',${totalPrice})"><i class="fa-solid fa-credit-card me-1"></i>Pay Bill</button>`;
+            } else if (r.payment_status === 'Processing') {
+                payBadge = `<span class="badge badge-warning"><i class="fa-solid fa-spinner fa-spin me-1"></i>Under Review</span>`;
+            } else if (r.payment_status === 'Paid') {
+                payBadge = `<span class="badge badge-success"><i class="fa-solid fa-check me-1"></i>Paid</span>`;
+            }
+
+            return `<tr>
+                <td>${i+1}</td>
+                <td><strong>${esc(r.food_name)}</strong></td>
+                <td>${esc(r.quantity)}</td>
+                <td>৳${totalPrice.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</td>
+                <td>${badge(r.delivery_status)}</td>
+                <td>${payBadge}</td>
+            </tr>`;
+        }).join('') : emptyRow(6,'No food orders placed yet.');
     }
 
     // ── FORM MODAL ──

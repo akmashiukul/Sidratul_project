@@ -657,7 +657,7 @@
             </div>
             <div class="table-responsive">
                 <table class="table">
-                    <thead><tr><th>ID</th><th>Student ID</th><th>Item</th><th>Qty</th><th>Price</th><th>Delivery</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Student</th><th>Food Item</th><th>Qty</th><th>Price (৳)</th><th>Delivery</th><th>Payment Status</th><th>Actions</th></tr></thead>
                     <tbody id="food-table"></tbody>
                 </table>
             </div>
@@ -894,13 +894,13 @@ const SECTION_MAP = {
     food: {
         endpoint: 'food_orders', tableId: 'food-table',
         idField: 'order_id', nameField: 'food_name',
-        columns: ['order_id','student_id','food_name','quantity','price','delivery_status'],
+        columns: ['order_id','student_name','food_name','quantity','price','delivery_status','payment_status'],
         addLabel: 'Add Order', sectionTitle: 'Food Order',
         fields: [
             { name:'student_id',      label:'Student ID', type:'number', required:true },
             { name:'food_name',       label:'Food Item',  type:'text',   required:true },
             { name:'quantity',        label:'Quantity',   type:'number', required:true },
-            { name:'price',           label:'Price',      type:'number', required:true },
+            { name:'price',           label:'Price (৳)',  type:'number', required:true },
             { name:'delivery_status', label:'Delivery',   type:'select', required:true,
               options:['Pending','Processing','Delivered'] }
         ]
@@ -955,7 +955,7 @@ function renderTable(sectionId, data) {
         const cells = cfg.columns.map(col => {
             const val = row[col];
             if (STATUS_COLS.has(col)) return `<td>${badge(val)}</td>`;
-            if (col === 'amount' && val != null) return `<td><strong>৳${Number(val).toLocaleString('en-BD', { minimumFractionDigits: 2 })}</strong></td>`;
+            if (['amount','price'].includes(col) && val != null) return `<td><strong>৳${Number(val).toLocaleString('en-BD', { minimumFractionDigits: 2 })}</strong></td>`;
             return `<td>${esc(val)}</td>`;
         }).join('');
 

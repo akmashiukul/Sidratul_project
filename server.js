@@ -557,18 +557,23 @@ app.post('/api/payments/:id/pay', protect('student'), (req, res) => {
 });
 
 // Admin auto-generate monthly bills for all students
+// Admin auto-generate monthly bills for ALLOCATED students ONLY
 app.post('/api/payments/generate-monthly', protect('admin','super_admin'), (req, res) => {
     const { payment_month, amount } = req.body;
     if (!payment_month || !amount) return res.status(400).json({ error: 'Month and Amount are required.' });
 
     const adminId = getAdminId(req);
-    const getStudentsSql = adminId
-        ? 'SELECT student_id FROM STUDENT WHERE admin_id=?'
-        : 'SELECT student_id FROM STUDENT';
+    const getStudentsSql = `
+        SELECT DISTINCT s.student_id 
+        FROM STUDENT s
+        JOIN APPLICATION a ON s.student_id = a.student_id
+        WHERE a.application_status = 'Approved' AND a.room_id IS NOT NULL
+        ${adminId ? 'AND s.admin_id = ' + db.escape(adminId) : ''}
+    `;
 
-    db.query(getStudentsSql, adminId ? [adminId] : [], (err, students) => {
+    db.query(getStudentsSql, (err, students) => {
         if (err) return res.status(500).json({ error: err.message });
-        if (!students.length) return res.status(400).json({ error: 'No active students found.' });
+        if (!students.length) return res.status(400).json({ error: 'No room-allocated students found to bill.' });
 
         const values = students.map(s => [s.student_id, amount, payment_month, 'N/A', null, 'Unpaid']);
         db.query('INSERT INTO PAYMENT (student_id, amount, payment_month, payment_method, transaction_id, payment_status) VALUES ?',
@@ -651,15 +656,31 @@ app.delete('/api/complaints/:id', protect('admin','super_admin'), (req, res) => 
 // ============================================================
 app.get('/api/food_orders', protect('super_admin','admin','student'), (req, res) => {
     if (req.user.role === 'student') {
-        db.query('SELECT order_id,student_id,food_name,quantity,price,delivery_status FROM FOOD_ORDER WHERE student_id=?',
-            [req.user.linked_id], (err, r) => { if (err) return res.status(500).json({ error: err.message }); res.json(r); });
+        const sql = `
+            SELECT 
+                f.order_id, f.student_id, f.food_name, f.quantity, f.price, f.delivery_status,
+                COALESCE(p.payment_status, 'Unpaid') AS payment_status,
+                p.payment_id, p.payment_method, p.transaction_id
+            FROM FOOD_ORDER f
+            LEFT JOIN PAYMENT p ON p.student_id = f.student_id AND p.payment_month LIKE CONCAT('Food Order #', f.order_id, ':%')
+            WHERE f.student_id=? ORDER BY f.order_id DESC
+        `;
+        db.query(sql, [req.user.linked_id], (err, r) => { if (err) return res.status(500).json({ error: err.message }); res.json(r); });
         return;
     }
     const adminId = getAdminId(req);
-    const sql = adminId
-        ? 'SELECT f.order_id,f.student_id,f.food_name,f.quantity,f.price,f.delivery_status FROM FOOD_ORDER f JOIN STUDENT s ON f.student_id=s.student_id WHERE s.admin_id=?'
-        : 'SELECT order_id,student_id,food_name,quantity,price,delivery_status FROM FOOD_ORDER';
-    db.query(sql, adminId ? [adminId] : [], (err, r) => {
+    const sql = `
+        SELECT 
+            f.order_id, f.student_id, s.student_name, f.food_name, f.quantity, f.price, f.delivery_status,
+            COALESCE(p.payment_status, 'Unpaid') AS payment_status,
+            p.payment_method, p.transaction_id, p.payment_id
+        FROM FOOD_ORDER f 
+        JOIN STUDENT s ON f.student_id=s.student_id 
+        LEFT JOIN PAYMENT p ON p.student_id = f.student_id AND p.payment_month LIKE CONCAT('Food Order #', f.order_id, ':%')
+        ${adminId ? 'WHERE s.admin_id = ' + db.escape(adminId) : ''}
+        ORDER BY f.order_id DESC
+    `;
+    db.query(sql, (err, r) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(r);
     });
@@ -667,9 +688,21 @@ app.get('/api/food_orders', protect('super_admin','admin','student'), (req, res)
 app.post('/api/food_orders', protect('admin','super_admin','student'), (req, res) => {
     const { student_id, food_name, quantity, price, delivery_status } = req.body;
     const sid = req.user.role === 'student' ? req.user.linked_id : student_id;
+    const qty = parseInt(quantity || 1);
+    const unitPrice = parseFloat(price || 0);
+    const totalCost = unitPrice * qty;
+
     db.query('INSERT INTO FOOD_ORDER (student_id,food_name,quantity,price,delivery_status) VALUES (?,?,?,?,?)',
-        [sid, food_name, quantity, price, delivery_status || 'Pending'], (err, r) => {
+        [sid, food_name, qty, unitPrice, delivery_status || 'Pending'], (err, r) => {
         if (err) return res.status(500).json({ error: err.message });
+
+        // Auto-create food payment invoice in PAYMENT table!
+        const itemDesc = `Food Order #${r.insertId}: ${food_name} (x${qty})`;
+        db.query('INSERT INTO PAYMENT (student_id, amount, payment_month, payment_method, transaction_id, payment_status) VALUES (?,?,?,?,?,?,?)',
+            [sid, totalCost, itemDesc, 'N/A', null, 'Unpaid'], (e2) => {
+            if (e2) console.error('Error auto-creating food payment invoice:', e2.message);
+        });
+
         res.json({ success: true, id: r.insertId });
     });
 });
