@@ -32,6 +32,14 @@ db.getConnection((err, conn) => {
         }
     });
 
+    conn.query("SHOW COLUMNS FROM PAYMENT LIKE 'payment_method'", (e, rows) => {
+        if (!e && rows.length === 0) {
+            conn.query("ALTER TABLE PAYMENT ADD COLUMN payment_method VARCHAR(50) NOT NULL DEFAULT 'bKash/Nagad' AFTER payment_month, ADD COLUMN transaction_id VARCHAR(100) NULL AFTER payment_method", () => {
+                console.log('✅ Auto-added payment_method and transaction_id columns to PAYMENT table.');
+            });
+        }
+    });
+
     conn.query("SHOW TABLES LIKE 'TECH_REPORT'", (e2, rows2) => {
         if (!e2 && rows2.length === 0) {
             conn.query(`CREATE TABLE TECH_REPORT (
@@ -516,35 +524,79 @@ app.delete('/api/applications/:id', protect('admin','super_admin'), (req, res) =
 // ============================================================
 app.get('/api/payments', protect('super_admin','admin','student'), (req, res) => {
     if (req.user.role === 'student') {
-        db.query('SELECT payment_id,student_id,amount,payment_month,payment_status FROM PAYMENT WHERE student_id=?',
+        db.query('SELECT payment_id, student_id, amount, payment_month, payment_method, transaction_id, payment_status, DATE_FORMAT(created_at, "%Y-%m-%d") AS created_at FROM PAYMENT WHERE student_id=? ORDER BY payment_id DESC',
             [req.user.linked_id], (err, r) => { if (err) return res.status(500).json({ error: err.message }); res.json(r); });
         return;
     }
     const adminId = getAdminId(req);
     const sql = adminId
-        ? 'SELECT p.payment_id,p.student_id,p.amount,p.payment_month,p.payment_status FROM PAYMENT p JOIN STUDENT s ON p.student_id=s.student_id WHERE s.admin_id=?'
-        : 'SELECT payment_id,student_id,amount,payment_month,payment_status FROM PAYMENT';
+        ? `SELECT p.payment_id, p.student_id, s.student_name, s.department, p.amount, p.payment_month, p.payment_method, p.transaction_id, p.payment_status, DATE_FORMAT(p.created_at, "%Y-%m-%d") AS created_at 
+           FROM PAYMENT p 
+           JOIN STUDENT s ON p.student_id=s.student_id 
+           WHERE s.admin_id=? ORDER BY p.payment_id DESC`
+        : `SELECT p.payment_id, p.student_id, s.student_name, s.department, p.amount, p.payment_month, p.payment_method, p.transaction_id, p.payment_status, DATE_FORMAT(p.created_at, "%Y-%m-%d") AS created_at 
+           FROM PAYMENT p 
+           JOIN STUDENT s ON p.student_id=s.student_id ORDER BY p.payment_id DESC`;
     db.query(sql, adminId ? [adminId] : [], (err, r) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(r);
     });
 });
+
+// Student Pay Now endpoint
+app.post('/api/payments/:id/pay', protect('student'), (req, res) => {
+    const { payment_method, transaction_id } = req.body;
+    if (!payment_method || !transaction_id) return res.status(400).json({ error: 'Payment method and Transaction ID are required.' });
+    
+    db.query('UPDATE PAYMENT SET payment_method=?, transaction_id=?, payment_status="Processing" WHERE payment_id=? AND student_id=?',
+        [payment_method, transaction_id, req.params.id, req.user.linked_id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'Invoice not found or unauthorized.' });
+        res.json({ success: true });
+    });
+});
+
+// Admin auto-generate monthly bills for all students
+app.post('/api/payments/generate-monthly', protect('admin','super_admin'), (req, res) => {
+    const { payment_month, amount } = req.body;
+    if (!payment_month || !amount) return res.status(400).json({ error: 'Month and Amount are required.' });
+
+    const adminId = getAdminId(req);
+    const getStudentsSql = adminId
+        ? 'SELECT student_id FROM STUDENT WHERE admin_id=?'
+        : 'SELECT student_id FROM STUDENT';
+
+    db.query(getStudentsSql, adminId ? [adminId] : [], (err, students) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!students.length) return res.status(400).json({ error: 'No active students found.' });
+
+        const values = students.map(s => [s.student_id, amount, payment_month, 'N/A', null, 'Unpaid']);
+        db.query('INSERT INTO PAYMENT (student_id, amount, payment_month, payment_method, transaction_id, payment_status) VALUES ?',
+            [values], (err2, r) => {
+            if (err2) return res.status(500).json({ error: err2.message });
+            res.json({ success: true, count: r.affectedRows });
+        });
+    });
+});
+
 app.post('/api/payments', protect('admin','super_admin'), (req, res) => {
-    const { student_id, amount, payment_month, payment_status } = req.body;
-    db.query('INSERT INTO PAYMENT (student_id,amount,payment_month,payment_status) VALUES (?,?,?,?)',
-        [student_id, amount, payment_month, payment_status], (err, r) => {
+    const { student_id, amount, payment_month, payment_method, transaction_id, payment_status } = req.body;
+    db.query('INSERT INTO PAYMENT (student_id, amount, payment_month, payment_method, transaction_id, payment_status) VALUES (?,?,?,?,?,?)',
+        [student_id, amount, payment_month, payment_method || 'bKash/Nagad', transaction_id || null, payment_status || 'Unpaid'], (err, r) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true, id: r.insertId });
     });
 });
+
 app.put('/api/payments/:id', protect('admin','super_admin'), (req, res) => {
-    const { student_id, amount, payment_month, payment_status } = req.body;
-    db.query('UPDATE PAYMENT SET student_id=?,amount=?,payment_month=?,payment_status=? WHERE payment_id=?',
-        [student_id, amount, payment_month, payment_status, req.params.id], (err) => {
+    const { student_id, amount, payment_month, payment_method, transaction_id, payment_status } = req.body;
+    db.query('UPDATE PAYMENT SET amount=?, payment_month=?, payment_method=?, transaction_id=?, payment_status=? WHERE payment_id=?',
+        [amount, payment_month, payment_method || 'bKash/Nagad', transaction_id || null, payment_status, req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true });
     });
 });
+
 app.delete('/api/payments/:id', protect('admin','super_admin'), (req, res) => {
     db.query('DELETE FROM PAYMENT WHERE payment_id=?', [req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });

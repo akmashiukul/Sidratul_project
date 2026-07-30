@@ -606,15 +606,20 @@
             <div class="tc-header">
                 <div class="tc-title">
                     <div class="tc-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-                    <div><h4>Payment Records</h4><small>Hostel fee tracking</small></div>
+                    <div><h4>Payment Records & Auto-Billing</h4><small>Hostel fee tracking & monthly generation</small></div>
                 </div>
-                <button class="btn-add" onclick="openAddModal('payment')">
-                    <i class="fa-solid fa-plus"></i>Add Payment
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn-add" style="background:#7c3aed;color:#fff" onclick="openGenBillsModal()">
+                        <i class="fa-solid fa-bolt"></i>Generate Monthly Bills
+                    </button>
+                    <button class="btn-add" onclick="openAddModal('payment')">
+                        <i class="fa-solid fa-plus"></i>Add Invoice
+                    </button>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table">
-                    <thead><tr><th>ID</th><th>Student ID</th><th>Amount</th><th>Month</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Student</th><th>Amount</th><th>Month</th><th>Method</th><th>Trx ID</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody id="payment-table"></tbody>
                 </table>
             </div>
@@ -740,6 +745,36 @@
     </div>
 </div>
 
+<!-- GENERATE MONTHLY BILLS MODAL -->
+<div class="modal fade" id="gen-bills-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-bolt me-2" style="color:#7c3aed"></i>Generate Monthly Dues</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <div class="alert alert-danger d-none" id="gb-error"></div>
+                <p class="text-muted" style="font-size:14px">This will generate fee invoices for all enrolled students under your administration.</p>
+                <div class="mb-3">
+                    <label class="form-label fw-600">Billing Month <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="gb-month" placeholder="e.g. August 2026">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-600">Amount per Student ($) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="gb-amount" value="150">
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn px-4 fw-600" style="background:#7c3aed;color:#fff" id="gb-submit-btn" onclick="submitGenBills()">
+                    <i class="fa-solid fa-bolt me-1"></i>Generate Dues
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ══════════════════════ TOAST ══════════════════════ -->
 <div class="toast-container position-fixed bottom-0 end-0 p-4" style="z-index:9999">
     <div id="app-toast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive">
@@ -832,15 +867,16 @@ const SECTION_MAP = {
     },
     payment: {
         endpoint: 'payments', tableId: 'payment-table',
-        idField: 'payment_id', nameField: 'payment_id',
-        columns: ['payment_id','student_id','amount','payment_month','payment_status'],
+        idField: 'payment_id', nameField: 'student_name',
+        columns: ['payment_id','student_name','amount','payment_month','payment_method','transaction_id','payment_status'],
         addLabel: 'Add Payment', sectionTitle: 'Payment',
         fields: [
             { name:'student_id',     label:'Student ID', type:'number', required:true },
-            { name:'amount',         label:'Amount',     type:'number', required:true },
-            { name:'payment_month',  label:'Month',      type:'text',   required:true, placeholder:'e.g. July 2025' },
-            { name:'payment_status', label:'Status',     type:'select', required:true,
-              options:['Paid','Unpaid','Processing'] }
+            { name:'amount',         label:'Amount ($)', type:'number', required:true },
+            { name:'payment_month',  label:'Month',      type:'text',   required:true, placeholder:'e.g. July 2026' },
+            { name:'payment_method', label:'Method',     type:'select', required:true, options:['bKash','Nagad','Rocket','Credit Card','Bank Transfer','Cash'] },
+            { name:'transaction_id', label:'Transaction ID', type:'text', required:false },
+            { name:'payment_status', label:'Status',     type:'select', required:true, options:['Paid','Unpaid','Processing'] }
         ]
     },
     complaint: {
@@ -1270,7 +1306,50 @@ async function fetchTechReports() {
                 </div>
             </div>`;
         }).join('');
-    } catch {}
+function openGenBillsModal() {
+    document.getElementById('gb-month').value = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+    document.getElementById('gb-amount').value = 150;
+    document.getElementById('gb-error').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('gen-bills-modal')).show();
+}
+
+async function submitGenBills() {
+    const month = document.getElementById('gb-month').value.trim();
+    const amount = document.getElementById('gb-amount').value;
+    const errEl = document.getElementById('gb-error');
+    const btn = document.getElementById('gb-submit-btn');
+
+    if (!month || !amount) {
+        errEl.textContent = 'Please provide month and amount.';
+        errEl.classList.remove('d-none');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating…';
+
+    try {
+        const res = await fetch(`${API_URL}/payments/generate-monthly`, {
+            method: 'POST',
+            headers: { ...AUTH_HEADERS, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_month: month, amount: parseFloat(amount) })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            errEl.textContent = data.error || 'Generation failed.';
+            errEl.classList.remove('d-none');
+            return;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('gen-bills-modal')).hide();
+        showToast(`Generated invoices for ${data.count} students! ✅`);
+        fetchTableData('payment');
+    } catch (e) {
+        errEl.textContent = 'Server error: ' + e.message;
+        errEl.classList.remove('d-none');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-bolt me-1"></i>Generate Dues';
+    }
 }
 </script>
 </body>

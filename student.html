@@ -269,13 +269,49 @@
 
         <!-- MY PAYMENTS -->
         <div id="payments-section" class="section-div">
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div style="background:#fff;border-radius:14px;padding:18px 20px;border:1px solid #ede9fe;box-shadow:0 2px 8px rgba(0,0,0,0.03)" class="d-flex align-items-center gap-3">
+                        <div style="width:44px;height:44px;border-radius:12px;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center;font-size:18px">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase">Total Paid</div>
+                            <div style="font-size:22px;font-weight:800;color:var(--text)" id="pay-stat-paid">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div style="background:#fff;border-radius:14px;padding:18px 20px;border:1px solid #ede9fe;box-shadow:0 2px 8px rgba(0,0,0,0.03)" class="d-flex align-items-center gap-3">
+                        <div style="width:44px;height:44px;border-radius:12px;background:#fee2e2;color:#b91c1c;display:flex;align-items:center;justify-content:center;font-size:18px">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase">Pending Dues</div>
+                            <div style="font-size:22px;font-weight:800;color:#b91c1c" id="pay-stat-due">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div style="background:#fff;border-radius:14px;padding:18px 20px;border:1px solid #ede9fe;box-shadow:0 2px 8px rgba(0,0,0,0.03)" class="d-flex align-items-center gap-3">
+                        <div style="width:44px;height:44px;border-radius:12px;background:#f5f3ff;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:18px">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase">Total Invoices</div>
+                            <div style="font-size:22px;font-weight:800;color:var(--text)" id="pay-stat-count">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="section-card">
                 <div class="section-header">
-                    <h4><i class="fa-solid fa-file-invoice-dollar" style="color:#7c3aed"></i>My Payments</h4>
+                    <h4><i class="fa-solid fa-file-invoice-dollar" style="color:#7c3aed"></i>My Invoices & Fee Payment</h4>
                 </div>
                 <div class="table-responsive">
                     <table class="table">
-                        <thead><tr><th>#</th><th>Month</th><th>Amount</th><th>Status</th></tr></thead>
+                        <thead><tr><th>#</th><th>Month</th><th>Amount</th><th>Method</th><th>Trx ID</th><th>Status</th><th>Action</th></tr></thead>
                         <tbody id="payments-table"></tbody>
                     </table>
                 </div>
@@ -335,6 +371,80 @@
                     <i class="fa-solid fa-paper-plane me-1"></i>Submit
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- PAY NOW MODAL -->
+<div class="modal fade" id="pay-now-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-credit-card me-2" style="color:#7c3aed"></i>Online Fee Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <div class="alert alert-danger d-none" id="pn-error"></div>
+                <div style="background:#faf5ff;border:1px solid #ede9fe;border-radius:12px;padding:14px 18px" class="mb-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <small style="color:var(--muted);font-weight:600;display:block">Invoice Month</small>
+                        <strong id="pn-month" style="font-size:16px;color:#1e1b4b">July 2026</strong>
+                    </div>
+                    <div class="text-end">
+                        <small style="color:var(--muted);font-weight:600;display:block">Amount Due</small>
+                        <strong id="pn-amount" style="font-size:20px;color:#7c3aed">$150.00</strong>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-600">Select Payment Method <span class="text-danger">*</span></label>
+                    <select class="form-select" id="pn-method" onchange="updatePayInstructions()">
+                        <option value="bKash">bKash Mobile Banking</option>
+                        <option value="Nagad">Nagad Mobile Banking</option>
+                        <option value="Rocket">Rocket Mobile Banking</option>
+                        <option value="Credit Card">Credit / Debit Card</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                    </select>
+                </div>
+
+                <div id="pn-instructions" class="alert alert-info py-2 px-3 mb-3" style="font-size:13px">
+                    <i class="fa-solid fa-info-circle me-1"></i>Please Send Money to Merchant number <strong>01700000000</strong> and paste the Transaction ID below.
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-600">Transaction ID (TrxID) <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="pn-trx" placeholder="e.g. TRX98237194">
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn px-4 fw-600" style="background:#7c3aed;color:#fff" id="pn-submit-btn" onclick="submitPayNow()">
+                    <i class="fa-solid fa-paper-plane me-1"></i>Submit Payment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="modal fade" id="receipt-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg p-3 text-center">
+            <div style="width:60px;height:60px;background:#dcfce7;color:#15803d;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:10px auto 14px">
+                <i class="fa-solid fa-file-invoice"></i>
+            </div>
+            <h5 class="fw-800 mb-1">Hostel Fee Payment Receipt</h5>
+            <span class="badge badge-success mx-auto mb-3 px-3 py-1">Official Paid Invoice</span>
+            
+            <div style="background:#f8fafc;border-radius:12px;padding:16px;text-align:left" class="mb-3">
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted" style="font-size:13px">Invoice ID:</span><strong id="rc-id" style="font-size:13px">#101</strong></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted" style="font-size:13px">Billing Month:</span><strong id="rc-month" style="font-size:13px">July 2026</strong></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted" style="font-size:13px">Amount Paid:</span><strong id="rc-amount" style="font-size:15px;color:#15803d">$150.00</strong></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted" style="font-size:13px">Payment Method:</span><strong id="rc-method" style="font-size:13px">bKash</strong></div>
+                <div class="d-flex justify-content-between mb-0"><span class="text-muted" style="font-size:13px">Transaction ID:</span><strong id="rc-trx" style="font-size:13px">TRX982736</strong></div>
+            </div>
+
+            <button class="btn btn-dark w-100" data-bs-dismiss="modal"><i class="fa-solid fa-check me-1"></i>Close Receipt</button>
         </div>
     </div>
 </div>
@@ -565,10 +675,116 @@
         tbody.innerHTML = applications.length ? applications.map((r,i) => `<tr><td>${i+1}</td><td><strong>${esc(r.room_number || 'General')}</strong></td><td>${esc(r.application_date)}</td><td>${badge(r.application_status)}</td></tr>`).join('') : emptyRow(4,'No room applications submitted yet.');
     }
 
+    let currentPayId = null;
+
     async function loadPayments() {
         const data = await apiFetch('/payments') || [];
         const tbody = document.getElementById('payments-table');
-        tbody.innerHTML = data.length ? data.map((r,i) => `<tr><td>${i+1}</td><td>${esc(r.payment_month)}</td><td>$${Number(r.amount).toFixed(2)}</td><td>${badge(r.payment_status)}</td></tr>`).join('') : emptyRow(4,'No payment records.');
+
+        let totalPaid = 0;
+        let totalDue = 0;
+
+        data.forEach(r => {
+            if (r.payment_status === 'Paid') totalPaid += Number(r.amount);
+            if (r.payment_status === 'Unpaid' || r.payment_status === 'Processing') totalDue += Number(r.amount);
+        });
+
+        const elPaid = document.getElementById('pay-stat-paid');
+        const elDue = document.getElementById('pay-stat-due');
+        const elCount = document.getElementById('pay-stat-count');
+        if (elPaid) elPaid.textContent = '$' + totalPaid.toFixed(2);
+        if (elDue) elDue.textContent = '$' + totalDue.toFixed(2);
+        if (elCount) elCount.textContent = data.length;
+
+        tbody.innerHTML = data.length ? data.map((r,i) => {
+            let actionBtn = '';
+            if (r.payment_status === 'Unpaid') {
+                actionBtn = `<button class="btn btn-sm px-3 fw-bold" style="background:#7c3aed;color:#fff;border-radius:8px;font-size:12px" onclick="openPayNowModal(${r.payment_id},'${esc(r.payment_month)}',${r.amount})"><i class="fa-solid fa-credit-card me-1"></i>Pay Now</button>`;
+            } else if (r.payment_status === 'Processing') {
+                actionBtn = `<span class="badge badge-warning"><i class="fa-solid fa-spinner fa-spin me-1"></i>Under Review</span>`;
+            } else if (r.payment_status === 'Paid') {
+                actionBtn = `<button class="btn btn-sm btn-light border px-3" style="font-size:12px" onclick="openReceiptModal(${r.payment_id},'${esc(r.payment_month)}',${r.amount},'${esc(r.payment_method)}','${esc(r.transaction_id)}')"><i class="fa-solid fa-receipt me-1"></i>Receipt</button>`;
+            }
+
+            return `<tr>
+                <td>${i+1}</td>
+                <td><strong>${esc(r.payment_month)}</strong></td>
+                <td>$${Number(r.amount).toFixed(2)}</td>
+                <td>${esc(r.payment_method || 'N/A')}</td>
+                <td><code style="font-size:12px;color:#7c3aed">${esc(r.transaction_id || '—')}</code></td>
+                <td>${badge(r.payment_status)}</td>
+                <td>${actionBtn}</td>
+            </tr>`;
+        }).join('') : emptyRow(7,'No payment records found.');
+    }
+
+    function openPayNowModal(id, month, amount) {
+        currentPayId = id;
+        document.getElementById('pn-month').textContent = month;
+        document.getElementById('pn-amount').textContent = '$' + Number(amount).toFixed(2);
+        document.getElementById('pn-trx').value = '';
+        document.getElementById('pn-error').classList.add('d-none');
+        updatePayInstructions();
+        new bootstrap.Modal(document.getElementById('pay-now-modal')).show();
+    }
+
+    function updatePayInstructions() {
+        const method = document.getElementById('pn-method').value;
+        const info = document.getElementById('pn-instructions');
+        if (['bKash','Nagad','Rocket'].includes(method)) {
+            info.innerHTML = `<i class="fa-solid fa-info-circle me-1"></i>Please Send Money to <strong>01700000000 (${method})</strong> and enter your Transaction ID below.`;
+        } else {
+            info.innerHTML = `<i class="fa-solid fa-info-circle me-1"></i>Please complete the transfer via ${method} and enter the reference number / Trx ID below.`;
+        }
+    }
+
+    async function submitPayNow() {
+        if (!currentPayId) return;
+        const method = document.getElementById('pn-method').value;
+        const trx = document.getElementById('pn-trx').value.trim();
+        const errEl = document.getElementById('pn-error');
+        const btn = document.getElementById('pn-submit-btn');
+
+        if (!trx) {
+            errEl.textContent = 'Please enter your Transaction ID.';
+            errEl.classList.remove('d-none');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting…';
+
+        try {
+            const res = await fetch(`${API}/payments/${currentPayId}/pay`, {
+                method: 'POST',
+                headers: H,
+                body: JSON.stringify({ payment_method: method, transaction_id: trx })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                errEl.textContent = data.error || 'Payment submission failed.';
+                errEl.classList.remove('d-none');
+                return;
+            }
+            bootstrap.Modal.getInstance(document.getElementById('pay-now-modal')).hide();
+            showToast('Payment submitted for Admin approval! ✅');
+            loadPayments();
+        } catch {
+            errEl.textContent = 'Server error.';
+            errEl.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i>Submit Payment';
+        }
+    }
+
+    function openReceiptModal(id, month, amount, method, trx) {
+        document.getElementById('rc-id').textContent = '#' + id;
+        document.getElementById('rc-month').textContent = month;
+        document.getElementById('rc-amount').textContent = '$' + Number(amount).toFixed(2);
+        document.getElementById('rc-method').textContent = method || 'Online';
+        document.getElementById('rc-trx').textContent = trx || 'N/A';
+        new bootstrap.Modal(document.getElementById('receipt-modal')).show();
     }
 
     async function loadComplaints() {

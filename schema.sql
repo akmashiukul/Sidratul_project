@@ -77,11 +77,14 @@ CREATE TABLE APPLICATION (
 -- TABLE 6: PAYMENT
 -- ============================================================
 CREATE TABLE PAYMENT (
-    payment_id     INT            NOT NULL AUTO_INCREMENT,
-    student_id     INT            NOT NULL,
-    amount         DECIMAL(10,2)  NOT NULL,
-    payment_month  VARCHAR(20)    NOT NULL,
-    payment_status ENUM('Paid','Unpaid','Processing') NOT NULL DEFAULT 'Unpaid',
+    payment_id      INT            NOT NULL AUTO_INCREMENT,
+    student_id      INT            NOT NULL,
+    amount          DECIMAL(10,2)  NOT NULL,
+    payment_month   VARCHAR(50)    NOT NULL,
+    payment_method  VARCHAR(50)    NOT NULL DEFAULT 'bKash/Nagad',
+    transaction_id  VARCHAR(100)   NULL,
+    payment_status  ENUM('Paid','Unpaid','Processing') NOT NULL DEFAULT 'Unpaid',
+    created_at      DATETIME       DEFAULT NOW(),
     PRIMARY KEY (payment_id),
     FOREIGN KEY (student_id) REFERENCES STUDENT(student_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -166,10 +169,11 @@ INSERT INTO APPLICATION (student_id, room_id, application_date, application_stat
 (5, 5, '2025-06-15','Pending');
 
 -- Payments
-INSERT INTO PAYMENT (student_id, amount, payment_month, payment_status) VALUES
-(1,2500.00,'June 2025','Paid'),   (2,2500.00,'June 2025','Paid'),
-(3,2500.00,'June 2025','Unpaid'), (4,2500.00,'June 2025','Processing'),
-(5,2500.00,'June 2025','Unpaid'), (1,2500.00,'July 2025','Unpaid');
+INSERT INTO PAYMENT (student_id, amount, payment_month, payment_method, transaction_id, payment_status) VALUES
+(1, 150.00, 'July 2026', 'bKash', 'TRX987123', 'Paid'),
+(1, 150.00, 'August 2026', 'bKash', 'TRX987124', 'Processing'),
+(2, 150.00, 'July 2026', 'Nagad', 'TRX654321', 'Paid'),
+(3, 150.00, 'July 2026', 'N/A', NULL, 'Unpaid');
 
 -- Complaints
 INSERT INTO COMPLAINT (student_id, complaint_text, complaint_status) VALUES
