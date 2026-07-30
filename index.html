@@ -587,7 +587,7 @@
             <div class="tc-header">
                 <div class="tc-title">
                     <div class="tc-icon"><i class="fa-solid fa-file-signature"></i></div>
-                    <div><h4>Applications</h4><small>Hostel admission requests</small></div>
+                    <div><h4>Room Applications</h4><small>Student room requests & status</small></div>
                 </div>
                 <button class="btn-add" onclick="openAddModal('application')">
                     <i class="fa-solid fa-plus"></i>New Application
@@ -595,7 +595,7 @@
             </div>
             <div class="table-responsive">
                 <table class="table">
-                    <thead><tr><th>ID</th><th>Student ID</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Student</th><th>Room No.</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody id="application-table"></tbody>
                 </table>
             </div>
@@ -771,7 +771,7 @@ const PAGE_META = {
     student:     { heading:'Students',     sub:'Manage all student records' },
     room:        { heading:'Rooms',        sub:'Hostel room management' },
     notice:      { heading:'Notices',      sub:'Published announcements' },
-    application: { heading:'Applications', sub:'Admission requests & status' },
+    application: { heading:'Room Applications', sub:'Manage student room requests & approvals' },
     payment:     { heading:'Payments',     sub:'Hostel fee tracking' },
     complaint:   { heading:'Complaints',   sub:'Student issues & resolutions' },
     food:        { heading:'Food Orders',  sub:'Meal orders & delivery' },
@@ -820,10 +820,11 @@ const SECTION_MAP = {
     application: {
         endpoint: 'applications', tableId: 'application-table',
         idField: 'application_id', nameField: 'application_id',
-        columns: ['application_id','student_id','application_date','application_status'],
-        addLabel: 'New Application', sectionTitle: 'Application',
+        columns: ['application_id','student_name','room_number','application_date','application_status'],
+        addLabel: 'New Application', sectionTitle: 'Room Application',
         fields: [
             { name:'student_id',         label:'Student ID',       type:'number', required:true },
+            { name:'room_id',            label:'Room ID',          type:'number', required:true },
             { name:'application_date',   label:'Application Date', type:'date',   required:true },
             { name:'application_status', label:'Status',           type:'select', required:true,
               options:['Pending','Approved','Rejected'] }

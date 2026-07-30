@@ -65,10 +65,12 @@ CREATE TABLE NOTICE (
 CREATE TABLE APPLICATION (
     application_id     INT  NOT NULL AUTO_INCREMENT,
     student_id         INT  NOT NULL,
+    room_id            INT  NULL,
     application_date   DATE NOT NULL DEFAULT (CURRENT_DATE),
     application_status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
     PRIMARY KEY (application_id),
-    FOREIGN KEY (student_id) REFERENCES STUDENT(student_id) ON DELETE CASCADE
+    FOREIGN KEY (student_id) REFERENCES STUDENT(student_id) ON DELETE CASCADE,
+    FOREIGN KEY (room_id) REFERENCES ROOM(room_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
@@ -158,10 +160,10 @@ INSERT INTO NOTICE (notice_title, publish_date, admin_id) VALUES
 ('Fire Drill Scheduled for July 10', '2025-07-03', 1);
 
 -- Applications
-INSERT INTO APPLICATION (student_id, application_date, application_status) VALUES
-(1,'2025-06-01','Approved'),(2,'2025-06-05','Approved'),
-(3,'2025-06-10','Pending'), (4,'2025-06-12','Rejected'),
-(5,'2025-06-15','Pending');
+INSERT INTO APPLICATION (student_id, room_id, application_date, application_status) VALUES
+(1, 1, '2025-06-01','Approved'), (2, 1, '2025-06-05','Approved'),
+(3, 3, '2025-06-10','Pending'),  (4, 5, '2025-06-12','Rejected'),
+(5, 5, '2025-06-15','Pending');
 
 -- Payments
 INSERT INTO PAYMENT (student_id, amount, payment_month, payment_status) VALUES

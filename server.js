@@ -386,37 +386,61 @@ app.delete('/api/notices/:id', protect('admin','super_admin'), (req, res) => {
 });
 
 // ============================================================
-// APPLICATION routes
+// APPLICATION routes (Room Applications)
 // ============================================================
 app.get('/api/applications', protect('super_admin','admin','student'), (req, res) => {
     if (req.user.role === 'student') {
-        db.query('SELECT application_id,student_id,DATE_FORMAT(application_date,"%Y-%m-%d") AS application_date,application_status FROM APPLICATION WHERE student_id=?',
+        db.query(`SELECT a.application_id, a.student_id, a.room_id, r.room_number, DATE_FORMAT(a.application_date,"%Y-%m-%d") AS application_date, a.application_status 
+                  FROM APPLICATION a 
+                  LEFT JOIN ROOM r ON a.room_id = r.room_id 
+                  WHERE a.student_id=? ORDER BY a.application_id DESC`,
             [req.user.linked_id], (err, r) => { if (err) return res.status(500).json({ error: err.message }); res.json(r); });
         return;
     }
     const adminId = getAdminId(req);
     const sql = adminId
-        ? 'SELECT a.application_id,a.student_id,DATE_FORMAT(a.application_date,"%Y-%m-%d") AS application_date,a.application_status FROM APPLICATION a JOIN STUDENT s ON a.student_id=s.student_id WHERE s.admin_id=?'
-        : 'SELECT application_id,student_id,DATE_FORMAT(application_date,"%Y-%m-%d") AS application_date,application_status FROM APPLICATION';
+        ? `SELECT a.application_id, a.student_id, s.student_name, a.room_id, r.room_number, DATE_FORMAT(a.application_date,"%Y-%m-%d") AS application_date, a.application_status 
+           FROM APPLICATION a 
+           JOIN STUDENT s ON a.student_id=s.student_id 
+           LEFT JOIN ROOM r ON a.room_id=r.room_id 
+           WHERE s.admin_id=? ORDER BY a.application_id DESC`
+        : `SELECT a.application_id, a.student_id, s.student_name, a.room_id, r.room_number, DATE_FORMAT(a.application_date,"%Y-%m-%d") AS application_date, a.application_status 
+           FROM APPLICATION a 
+           JOIN STUDENT s ON a.student_id=s.student_id 
+           LEFT JOIN ROOM r ON a.room_id=r.room_id ORDER BY a.application_id DESC`;
     db.query(sql, adminId ? [adminId] : [], (err, r) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(r);
     });
 });
 app.post('/api/applications', protect('admin','super_admin','student'), (req, res) => {
-    const { student_id, application_date, application_status } = req.body;
+    const { student_id, room_id, application_date, application_status } = req.body;
     const sid = req.user.role === 'student' ? req.user.linked_id : student_id;
-    db.query('INSERT INTO APPLICATION (student_id,application_date,application_status) VALUES (?,?,?)',
-        [sid, application_date, application_status || 'Pending'], (err, r) => {
+    db.query('INSERT INTO APPLICATION (student_id, room_id, application_date, application_status) VALUES (?,?,?,?)',
+        [sid, room_id || null, application_date || new Date().toISOString().split('T')[0], application_status || 'Pending'], (err, r) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true, id: r.insertId });
     });
 });
 app.put('/api/applications/:id', protect('admin','super_admin'), (req, res) => {
-    const { student_id, application_date, application_status } = req.body;
-    db.query('UPDATE APPLICATION SET student_id=?,application_date=?,application_status=? WHERE application_id=?',
-        [student_id, application_date, application_status, req.params.id], (err) => {
+    const { student_id, room_id, application_date, application_status } = req.body;
+    db.query('UPDATE APPLICATION SET student_id=?, room_id=?, application_date=?, application_status=? WHERE application_id=?',
+        [student_id, room_id || null, application_date, application_status, req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
+
+        // If approved, check if room capacity vs approved applications marks room Full
+        if (application_status === 'Approved' && room_id) {
+            db.query('SELECT seat_capacity FROM ROOM WHERE room_id=?', [room_id], (e1, rRows) => {
+                if (!e1 && rRows.length) {
+                    const cap = rRows[0].seat_capacity;
+                    db.query('SELECT COUNT(*) as cnt FROM APPLICATION WHERE room_id=? AND application_status="Approved"', [room_id], (e2, cRows) => {
+                        if (!e2 && cRows.length && cRows[0].cnt >= cap) {
+                            db.query('UPDATE ROOM SET room_status="Full" WHERE room_id=?', [room_id]);
+                        }
+                    });
+                }
+            });
+        }
         res.json({ success: true });
     });
 });

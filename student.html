@@ -187,7 +187,7 @@
         <a href="#" id="nav-profile"     class="active" onclick="showSection('profile',this)"><i class="fa-solid fa-circle-user"></i> My Profile</a>
         <a href="#" id="nav-notices"     onclick="showSection('notices',this)"><i class="fa-solid fa-bullhorn"></i> Notices</a>
         <a href="#" id="nav-rooms"       onclick="showSection('rooms',this)"><i class="fa-solid fa-bed"></i> Rooms</a>
-        <a href="#" id="nav-application" onclick="showSection('application',this)"><i class="fa-solid fa-file-signature"></i> My Application</a>
+        <a href="#" id="nav-application" onclick="showSection('application',this)"><i class="fa-solid fa-file-signature"></i> Room Application</a>
         <a href="#" id="nav-payments"    onclick="showSection('payments',this)"><i class="fa-solid fa-file-invoice-dollar"></i> My Payments</a>
         <a href="#" id="nav-complaints"  onclick="showSection('complaints',this)"><i class="fa-solid fa-triangle-exclamation"></i> My Complaints</a>
         <a href="#" id="nav-food"        onclick="showSection('food',this)"><i class="fa-solid fa-utensils"></i> Food Orders</a>
@@ -259,16 +259,16 @@
             </div>
         </div>
 
-        <!-- MY APPLICATION -->
+        <!-- ROOM APPLICATION -->
         <div id="application-section" class="section-div">
             <div class="section-card">
                 <div class="section-header">
-                    <h4><i class="fa-solid fa-file-signature" style="color:#7c3aed"></i>My Application</h4>
-                    <button class="btn-green" onclick="openModal('application')"><i class="fa-solid fa-plus"></i>Apply Now</button>
+                    <h4><i class="fa-solid fa-file-signature" style="color:#7c3aed"></i>Room Application</h4>
+                    <button class="btn-green" onclick="openModal('application')"><i class="fa-solid fa-plus"></i>Apply for Room</button>
                 </div>
                 <div class="table-responsive">
                     <table class="table">
-                        <thead><tr><th>#</th><th>Application Date</th><th>Status</th></tr></thead>
+                        <thead><tr><th>#</th><th>Room No.</th><th>Application Date</th><th>Status</th></tr></thead>
                         <tbody id="application-table"></tbody>
                     </table>
                 </div>
@@ -401,7 +401,7 @@
         document.getElementById(id + '-section').classList.add('active');
         document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
         if (el) el.classList.add('active');
-        const titles = { profile:'My Profile', notices:'Notice Board', rooms:'Room Availability', application:'My Application', payments:'My Payments', complaints:'My Complaints', food:'Food Orders' };
+        const titles = { profile:'My Profile', notices:'Notice Board', rooms:'Room Availability', application:'Room Application', payments:'My Payments', complaints:'My Complaints', food:'Food Orders' };
         document.getElementById('page-title').textContent = titles[id] || id;
         loadSection(id);
     }
@@ -478,7 +478,7 @@
     async function loadApplications() {
         const data = await apiFetch('/applications') || [];
         const tbody = document.getElementById('application-table');
-        tbody.innerHTML = data.length ? data.map((r,i) => `<tr><td>${i+1}</td><td>${esc(r.application_date)}</td><td>${badge(r.application_status)}</td></tr>`).join('') : emptyRow(3,'No application submitted yet.');
+        tbody.innerHTML = data.length ? data.map((r,i) => `<tr><td>${i+1}</td><td><strong>${esc(r.room_number || 'General')}</strong></td><td>${esc(r.application_date)}</td><td>${badge(r.application_status)}</td></tr>`).join('') : emptyRow(4,'No room applications submitted yet.');
     }
 
     async function loadPayments() {
@@ -520,24 +520,36 @@
             endpoint: '/food_orders'
         },
         application: {
-            title: 'Submit Hostel Application',
+            title: 'Apply for Room Allocation',
             fields: [
+                { name:'room_id', label:'Select Free Room', type:'select_room', required:true },
                 { name:'application_date', label:'Application Date', type:'date', required:true }
             ],
             endpoint: '/applications'
         }
     };
 
-    function openModal(type) {
+    async function openModal(type) {
         currentForm = FORMS[type];
         if (!currentForm) return;
         document.getElementById('modal-title').textContent = currentForm.title;
         document.getElementById('modal-error').classList.add('d-none');
 
+        let roomsList = [];
+        if (type === 'application') {
+            roomsList = await apiFetch('/rooms') || [];
+        }
+
         document.getElementById('modal-fields').innerHTML = currentForm.fields.map(f => {
             let input;
             if (f.type === 'textarea') {
                 input = `<textarea class="form-control" id="mf-${f.name}" rows="3" ${f.required?'required':''}></textarea>`;
+            } else if (f.type === 'select_room') {
+                const availableRooms = roomsList.filter(r => r.room_status === 'Available');
+                const opts = availableRooms.length 
+                    ? availableRooms.map(r => `<option value="${r.room_id}">${esc(r.room_number)} (Capacity: ${r.seat_capacity} seats)</option>`).join('')
+                    : '<option value="">No available rooms at the moment</option>';
+                input = `<select class="form-select" id="mf-${f.name}" ${f.required?'required':''}>${opts}</select>`;
             } else {
                 const today = new Date().toISOString().split('T')[0];
                 const val   = f.type === 'date' ? ` value="${today}"` : '';
