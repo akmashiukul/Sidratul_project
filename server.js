@@ -614,14 +614,14 @@ app.delete('/api/payments/:id', protect('admin','super_admin'), (req, res) => {
 // ============================================================
 app.get('/api/complaints', protect('super_admin','admin','student'), (req, res) => {
     if (req.user.role === 'student') {
-        db.query('SELECT complaint_id,student_id,complaint_text,complaint_status FROM COMPLAINT WHERE student_id=?',
+        db.query('SELECT complaint_id,student_id,complaint_text,complaint_status FROM COMPLAINT WHERE student_id=? ORDER BY complaint_id DESC',
             [req.user.linked_id], (err, r) => { if (err) return res.status(500).json({ error: err.message }); res.json(r); });
         return;
     }
     const adminId = getAdminId(req);
     const sql = adminId
-        ? 'SELECT c.complaint_id,c.student_id,c.complaint_text,c.complaint_status FROM COMPLAINT c JOIN STUDENT s ON c.student_id=s.student_id WHERE s.admin_id=?'
-        : 'SELECT complaint_id,student_id,complaint_text,complaint_status FROM COMPLAINT';
+        ? 'SELECT c.complaint_id, c.student_id, s.student_name, c.complaint_text, c.complaint_status FROM COMPLAINT c JOIN STUDENT s ON c.student_id=s.student_id WHERE s.admin_id=? ORDER BY c.complaint_id DESC'
+        : 'SELECT c.complaint_id, c.student_id, s.student_name, c.complaint_text, c.complaint_status FROM COMPLAINT c JOIN STUDENT s ON c.student_id=s.student_id ORDER BY c.complaint_id DESC';
     db.query(sql, adminId ? [adminId] : [], (err, r) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(r);

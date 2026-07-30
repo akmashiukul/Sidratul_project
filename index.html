@@ -638,7 +638,7 @@
             </div>
             <div class="table-responsive">
                 <table class="table">
-                    <thead><tr><th>ID</th><th>Student ID</th><th>Complaint</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Student</th><th>Complaint Details</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody id="complaint-table"></tbody>
                 </table>
             </div>
@@ -881,8 +881,8 @@ const SECTION_MAP = {
     },
     complaint: {
         endpoint: 'complaints', tableId: 'complaint-table',
-        idField: 'complaint_id', nameField: 'complaint_id',
-        columns: ['complaint_id','student_id','complaint_text','complaint_status'],
+        idField: 'complaint_id', nameField: 'student_name',
+        columns: ['complaint_id','student_name','complaint_text','complaint_status'],
         addLabel: 'Add Complaint', sectionTitle: 'Complaint',
         fields: [
             { name:'student_id',       label:'Student ID',        type:'number',   required:true },
@@ -1355,3 +1355,4 @@ async function submitGenBills() {
 </script>
 </body>
 </html>
+    
