@@ -1,0 +1,93 @@
+========================================================================
+HOSTEL MANAGEMENT SYSTEM — COMPLETE SETUP & RUN GUIDE
+========================================================================
+
+Follow this standard procedure to set up and run this project on any laptop.
+
+------------------------------------------------------------------------
+PREREQUISITES TO INSTALL
+------------------------------------------------------------------------
+1. Node.js (LTS version): https://nodejs.org/
+2. XAMPP (for MySQL & phpMyAdmin): https://www.apachefriends.org/
+3. VS Code or text editor: https://code.visualstudio.com/
+4. Git (optional): https://git-scm.com/
+
+
+------------------------------------------------------------------------
+STEP 1: GET THE PROJECT FILES
+------------------------------------------------------------------------
+Option A (Using Git):
+   Open Terminal/Command Prompt and run:
+   git clone https://github.com/akmashiukul/Sidratul_project.git
+   cd Sidratul_project
+
+Option B (Using USB / ZIP):
+   Copy the project folder directly to your Desktop.
+
+
+------------------------------------------------------------------------
+STEP 2: DATABASE SETUP (MySQL / XAMPP)
+------------------------------------------------------------------------
+1. Open XAMPP Control Panel.
+2. Click "Start" next to Apache and MySQL.
+3. Open your browser and go to: http://localhost/phpmyadmin
+4. Click on the "SQL" tab at the top.
+5. Open the file "schema.sql" from your project folder, copy all text, 
+   paste it into phpMyAdmin SQL query window, and click "Go".
+
+* TROUBLESHOOTING (If MySQL in XAMPP fails to start / shuts down unexpectedly):
+  - Press Win + R -> type "services.msc" -> Press Enter.
+  - Find "MySQL" or "MySQL80" service. If running, right-click -> Stop.
+  - If crash persists: in C:\xampp\mysql\, rename "data" to "data_old", 
+    copy "backup" folder and rename it to "data", then copy "ibdata1" 
+    from "data_old" into "data". Start MySQL again.
+
+
+------------------------------------------------------------------------
+STEP 3: INSTALL DEPENDENCIES
+------------------------------------------------------------------------
+1. Open terminal inside the project folder in VS Code.
+2. If you see a PowerShell execution error when running npm, run this first:
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   (Press 'Y' and Enter when prompted)
+
+3. Install required node packages:
+   npm install
+   (Alternatively, use: npm.cmd install)
+
+
+------------------------------------------------------------------------
+STEP 4: START SERVER & SEED USERS
+------------------------------------------------------------------------
+1. Start the Node.js backend server:
+   node server.js
+
+2. CRITICAL STEP: Open your browser and visit:
+   http://localhost:3000/api/setup
+   
+   (This seeds all Super Admin, Admin, and Student accounts with 
+   hashed passwords into the database).
+
+
+------------------------------------------------------------------------
+STEP 5: DEFAULT LOGIN CREDENTIALS
+------------------------------------------------------------------------
++------------------+-----------------------+-------------------+
+| Role             | Email                 | Password          |
++------------------+-----------------------+-------------------+
+| Super Admin      | superadmin@hms.com    | SuperAdmin@123    |
+| Hostel Admin     | admin@hostel.edu      | Admin@123         |
+| Student          | rakib@student.edu     | Student@123       |
++------------------+-----------------------+-------------------+
+
+
+------------------------------------------------------------------------
+STEP 6: ACCESS THE WEBPAGES
+------------------------------------------------------------------------
+Open any of the following files directly in your web browser:
+- Login Page:        login.html
+- Student Portal:    student.html
+- Admin Panel:       index.html
+- Super Admin Panel: superadmin.html
+
+========================================================================
