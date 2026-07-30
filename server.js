@@ -317,26 +317,52 @@ app.delete('/api/students/:id', protect('admin','super_admin'), (req, res) => {
 // ROOM routes
 // ============================================================
 app.get('/api/rooms', protect('super_admin','admin','student'), (req, res) => {
-    const adminId = req.user.role === 'student' ? null : getAdminId(req);
-    // students see all rooms (read-only), admins see own
     if (req.user.role === 'student') {
-        // get admin_id of this student first
-        db.query('SELECT admin_id FROM STUDENT WHERE student_id=?', [req.user.linked_id], (err, rows) => {
+        const studentId = req.user.linked_id;
+        db.query('SELECT admin_id FROM STUDENT WHERE student_id=?', [studentId], (err, rows) => {
             if (err || !rows.length) return res.json([]);
-            db.query('SELECT room_id,room_number,seat_capacity,room_status FROM ROOM WHERE admin_id=?',
-                [rows[0].admin_id], (err2, r) => {
+            const adminId = rows[0].admin_id;
+
+            const sql = `
+                SELECT 
+                    r.room_id, 
+                    r.room_number, 
+                    r.seat_capacity, 
+                    r.room_status,
+                    COUNT(CASE WHEN a.application_status = 'Approved' THEN 1 END) AS occupied_seats,
+                    GREATEST(0, r.seat_capacity - COUNT(CASE WHEN a.application_status = 'Approved' THEN 1 END)) AS available_seats,
+                    MAX(CASE WHEN a.student_id = ? AND a.application_status = 'Approved' THEN 1 ELSE 0 END) AS is_my_room
+                FROM ROOM r
+                LEFT JOIN APPLICATION a ON r.room_id = a.room_id
+                WHERE r.admin_id = ?
+                GROUP BY r.room_id, r.room_number, r.seat_capacity, r.room_status
+                ORDER BY r.room_number ASC
+            `;
+            db.query(sql, [studentId, adminId], (err2, rooms) => {
                 if (err2) return res.status(500).json({ error: err2.message });
-                res.json(r);
+                res.json(rooms);
             });
         });
         return;
     }
-    const sql = adminId
-        ? 'SELECT room_id,room_number,seat_capacity,room_status FROM ROOM WHERE admin_id=?'
-        : 'SELECT room_id,room_number,seat_capacity,room_status FROM ROOM';
-    db.query(sql, adminId ? [adminId] : [], (err, r) => {
+    const adminId = getAdminId(req);
+    const sql = `
+        SELECT 
+            r.room_id, 
+            r.room_number, 
+            r.seat_capacity, 
+            r.room_status,
+            COUNT(CASE WHEN a.application_status = 'Approved' THEN 1 END) AS occupied_seats,
+            GREATEST(0, r.seat_capacity - COUNT(CASE WHEN a.application_status = 'Approved' THEN 1 END)) AS available_seats
+        FROM ROOM r
+        LEFT JOIN APPLICATION a ON r.room_id = a.room_id
+        ${adminId ? 'WHERE r.admin_id = ' + db.escape(adminId) : ''}
+        GROUP BY r.room_id, r.room_number, r.seat_capacity, r.room_status
+        ORDER BY r.room_number ASC
+    `;
+    db.query(sql, (err, rooms) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json(r);
+        res.json(rooms);
     });
 });
 app.post('/api/rooms', protect('admin','super_admin'), (req, res) => {

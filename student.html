@@ -244,15 +244,28 @@
             </div>
         </div>
 
-        <!-- ROOMS (read-only) -->
+        <!-- ROOMS SECTION -->
         <div id="rooms-section" class="section-div">
+            <!-- My Allocated Room Highlight Card -->
+            <div id="my-room-card" class="mb-4" style="display:none;"></div>
+
             <div class="section-card">
                 <div class="section-header">
-                    <h4><i class="fa-solid fa-bed" style="color:#7c3aed"></i>Room Availability</h4>
+                    <h4><i class="fa-solid fa-bed" style="color:#7c3aed"></i>All Hostel Rooms & Availability</h4>
                 </div>
                 <div class="table-responsive">
                     <table class="table">
-                        <thead><tr><th>#</th><th>Room No.</th><th>Capacity</th><th>Status</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Room No.</th>
+                                <th>Total Seats</th>
+                                <th>Occupied</th>
+                                <th>Available</th>
+                                <th>Status</th>
+                                <th>Your Room</th>
+                            </tr>
+                        </thead>
                         <tbody id="rooms-table"></tbody>
                     </table>
                 </div>
@@ -472,7 +485,71 @@
     async function loadRooms() {
         const data = await apiFetch('/rooms') || [];
         const tbody = document.getElementById('rooms-table');
-        tbody.innerHTML = data.length ? data.map((r,i) => `<tr><td>${i+1}</td><td>${esc(r.room_number)}</td><td>${esc(r.seat_capacity)}</td><td>${badge(r.room_status)}</td></tr>`).join('') : emptyRow(4,'No rooms found.');
+        const myRoomCard = document.getElementById('my-room-card');
+
+        const myRoom = data.find(r => r.is_my_room === 1);
+
+        if (myRoomCard) {
+            if (myRoom) {
+                myRoomCard.style.display = 'block';
+                myRoomCard.innerHTML = `
+                    <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-radius:16px;padding:24px;box-shadow:0 8px 24px rgba(124,58,237,0.25)">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div>
+                                <span class="badge" style="background:rgba(255,255,255,0.2);color:#fff;font-size:12px;padding:5px 12px;border-radius:20px;margin-bottom:8px;display:inline-block">
+                                    <i class="fa-solid fa-circle-check me-1"></i>Your Allocated Room
+                                </span>
+                                <h3 style="font-weight:800;margin:0;font-size:26px">Room ${esc(myRoom.room_number)}</h3>
+                            </div>
+                            <div class="d-flex gap-3">
+                                <div style="background:rgba(255,255,255,0.15);padding:12px 20px;border-radius:12px;text-align:center">
+                                    <div style="font-size:11px;opacity:0.8;text-transform:uppercase;font-weight:700">Total Seats</div>
+                                    <div style="font-size:20px;font-weight:800">${esc(myRoom.seat_capacity)}</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.15);padding:12px 20px;border-radius:12px;text-align:center">
+                                    <div style="font-size:11px;opacity:0.8;text-transform:uppercase;font-weight:700">Occupied</div>
+                                    <div style="font-size:20px;font-weight:800">${esc(myRoom.occupied_seats)}</div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.15);padding:12px 20px;border-radius:12px;text-align:center">
+                                    <div style="font-size:11px;opacity:0.8;text-transform:uppercase;font-weight:700">Available</div>
+                                    <div style="font-size:20px;font-weight:800">${esc(myRoom.available_seats)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                myRoomCard.style.display = 'block';
+                myRoomCard.innerHTML = `
+                    <div style="background:#fff;border:1.5px solid #c4b5fd;border-radius:16px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,0.04)" class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width:48px;height:48px;border-radius:12px;background:#f5f3ff;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:20px">
+                                <i class="fa-solid fa-bed"></i>
+                            </div>
+                            <div>
+                                <h5 style="font-weight:700;margin:0 0 2px;color:#1e1b4b">No Room Allocated Yet</h5>
+                                <small style="color:#6b7280">You can apply for a room in the Room Application section.</small>
+                            </div>
+                        </div>
+                        <button class="btn-green" onclick="showSection('application', document.getElementById('nav-application'))">
+                            <i class="fa-solid fa-plus"></i>Apply for Room
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        tbody.innerHTML = data.length ? data.map((r,i) => `
+            <tr ${r.is_my_room === 1 ? 'style="background:#f5f3ff;font-weight:600"' : ''}>
+                <td>${i+1}</td>
+                <td><strong>${esc(r.room_number)}</strong></td>
+                <td>${esc(r.seat_capacity)} seats</td>
+                <td><span class="badge badge-warning">${esc(r.occupied_seats)} Students</span></td>
+                <td><span class="badge ${r.available_seats > 0 ? 'badge-success' : 'badge-danger'}">${esc(r.available_seats)} Available</span></td>
+                <td>${badge(r.room_status)}</td>
+                <td>${r.is_my_room === 1 ? '<span class="badge" style="background:#7c3aed;color:#fff"><i class="fa-solid fa-check me-1"></i>Allocated</span>' : '—'}</td>
+            </tr>
+        `).join('') : emptyRow(7,'No rooms found.');
     }
 
     async function loadApplications() {
