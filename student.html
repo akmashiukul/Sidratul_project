@@ -253,12 +253,14 @@
         <div id="application-section" class="section-div">
             <div class="section-card">
                 <div class="section-header">
-                    <h4><i class="fa-solid fa-file-signature" style="color:#7c3aed"></i>Room Application</h4>
-                    <button class="btn-green" onclick="openModal('application')"><i class="fa-solid fa-plus"></i>Apply for Room</button>
+                    <h4 id="app-section-title"><i class="fa-solid fa-file-signature" style="color:#7c3aed"></i>Room Application</h4>
+                    <button class="btn-green" id="app-btn-main" onclick="openModal('application')">
+                        <i class="fa-solid fa-plus me-1"></i><span id="app-btn-label">Apply for Room</span>
+                    </button>
                 </div>
                 <div class="table-responsive">
                     <table class="table">
-                        <thead><tr><th>#</th><th>Room No.</th><th>Application Date</th><th>Status</th></tr></thead>
+                        <thead><tr><th>#</th><th>Requested Room</th><th>Application Date</th><th>Status</th></tr></thead>
                         <tbody id="application-table"></tbody>
                     </table>
                 </div>
@@ -540,9 +542,27 @@
     }
 
     async function loadApplications() {
-        const data = await apiFetch('/applications') || [];
+        const [data, rooms] = await Promise.all([
+            apiFetch('/applications'),
+            apiFetch('/rooms')
+        ]);
+        const applications = data || [];
+        const roomsList = rooms || [];
+        const hasAllocatedRoom = roomsList.some(r => Number(r.is_my_room) === 1);
+
+        const titleEl = document.getElementById('app-section-title');
+        const btnLabel = document.getElementById('app-btn-label');
+        if (titleEl) {
+            titleEl.innerHTML = hasAllocatedRoom 
+                ? `<i class="fa-solid fa-arrows-rotate" style="color:#7c3aed"></i>Application for Room Change`
+                : `<i class="fa-solid fa-file-signature" style="color:#7c3aed"></i>Room Application`;
+        }
+        if (btnLabel) {
+            btnLabel.textContent = hasAllocatedRoom ? 'Apply for Room Change' : 'Apply for Room';
+        }
+
         const tbody = document.getElementById('application-table');
-        tbody.innerHTML = data.length ? data.map((r,i) => `<tr><td>${i+1}</td><td><strong>${esc(r.room_number || 'General')}</strong></td><td>${esc(r.application_date)}</td><td>${badge(r.application_status)}</td></tr>`).join('') : emptyRow(4,'No room applications submitted yet.');
+        tbody.innerHTML = applications.length ? applications.map((r,i) => `<tr><td>${i+1}</td><td><strong>${esc(r.room_number || 'General')}</strong></td><td>${esc(r.application_date)}</td><td>${badge(r.application_status)}</td></tr>`).join('') : emptyRow(4,'No room applications submitted yet.');
     }
 
     async function loadPayments() {
@@ -596,24 +616,31 @@
     async function openModal(type) {
         currentForm = FORMS[type];
         if (!currentForm) return;
-        document.getElementById('modal-title').textContent = currentForm.title;
-        document.getElementById('modal-error').classList.add('d-none');
 
         let roomsList = [];
+        let hasAllocatedRoom = false;
+
         if (type === 'application') {
             roomsList = await apiFetch('/rooms') || [];
+            hasAllocatedRoom = roomsList.some(r => Number(r.is_my_room) === 1);
+            currentForm.title = hasAllocatedRoom ? 'Application for Room Change' : 'Apply for Room Allocation';
         }
+
+        document.getElementById('modal-title').textContent = currentForm.title;
+        document.getElementById('modal-error').classList.add('d-none');
 
         document.getElementById('modal-fields').innerHTML = currentForm.fields.map(f => {
             let input;
             if (f.type === 'textarea') {
                 input = `<textarea class="form-control" id="mf-${f.name}" rows="3" ${f.required?'required':''}></textarea>`;
             } else if (f.type === 'select_room') {
-                const availableRooms = roomsList.filter(r => r.room_status === 'Available');
+                const labelText = hasAllocatedRoom ? 'Select New Room to Change To' : 'Select Free Room';
+                const availableRooms = roomsList.filter(r => r.room_status === 'Available' && Number(r.is_my_room) !== 1);
                 const opts = availableRooms.length 
                     ? availableRooms.map(r => `<option value="${r.room_id}">${esc(r.room_number)} (Capacity: ${r.seat_capacity} seats)</option>`).join('')
-                    : '<option value="">No available rooms at the moment</option>';
+                    : '<option value="">No available rooms to switch to at the moment</option>';
                 input = `<select class="form-select" id="mf-${f.name}" ${f.required?'required':''}>${opts}</select>`;
+                return `<div class="mb-3"><label class="form-label">${esc(labelText)} <span class="text-danger">*</span></label>${input}</div>`;
             } else {
                 const today = new Date().toISOString().split('T')[0];
                 const val   = f.type === 'date' ? ` value="${today}"` : '';
