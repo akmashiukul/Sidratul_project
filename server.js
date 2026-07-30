@@ -40,6 +40,14 @@ db.getConnection((err, conn) => {
         }
     });
 
+    conn.query("SHOW COLUMNS FROM PAYMENT LIKE 'created_at'", (e, rows) => {
+        if (!e && rows.length === 0) {
+            conn.query("ALTER TABLE PAYMENT ADD COLUMN created_at DATETIME DEFAULT NOW()", () => {
+                console.log('✅ Auto-added created_at column to PAYMENT table.');
+            });
+        }
+    });
+
     conn.query("ALTER TABLE PAYMENT MODIFY COLUMN payment_month VARCHAR(255) NOT NULL", (e) => {
         if (!e) console.log('✅ Expanded PAYMENT.payment_month to VARCHAR(255).');
     });
@@ -539,7 +547,7 @@ app.get('/api/payments', protect('super_admin','admin','student'), (req, res) =>
         `;
         db.query(syncSql, [sid], (syncErr) => {
             if (syncErr) console.error('Sync student food payment warning:', syncErr.message);
-            db.query('SELECT payment_id, student_id, amount, payment_month, payment_method, transaction_id, payment_status, DATE_FORMAT(created_at, "%Y-%m-%d") AS created_at FROM PAYMENT WHERE student_id=? ORDER BY payment_id DESC',
+            db.query('SELECT payment_id, student_id, amount, payment_month, payment_method, transaction_id, payment_status FROM PAYMENT WHERE student_id=? ORDER BY payment_id DESC',
                 [sid], (err, r) => { if (err) return res.status(500).json({ error: err.message }); res.json(r); });
         });
         return;
@@ -556,11 +564,11 @@ app.get('/api/payments', protect('super_admin','admin','student'), (req, res) =>
     db.query(syncAllSql, (syncErr) => {
         if (syncErr) console.error('Sync all food payment warning:', syncErr.message);
         const sql = adminId
-            ? `SELECT p.payment_id, p.student_id, s.student_name, s.department, p.amount, p.payment_month, p.payment_method, p.transaction_id, p.payment_status, DATE_FORMAT(p.created_at, "%Y-%m-%d") AS created_at 
+            ? `SELECT p.payment_id, p.student_id, s.student_name, s.department, p.amount, p.payment_month, p.payment_method, p.transaction_id, p.payment_status 
                FROM PAYMENT p 
                JOIN STUDENT s ON p.student_id=s.student_id 
                WHERE s.admin_id=? ORDER BY p.payment_id DESC`
-            : `SELECT p.payment_id, p.student_id, s.student_name, s.department, p.amount, p.payment_month, p.payment_method, p.transaction_id, p.payment_status, DATE_FORMAT(p.created_at, "%Y-%m-%d") AS created_at 
+            : `SELECT p.payment_id, p.student_id, s.student_name, s.department, p.amount, p.payment_month, p.payment_method, p.transaction_id, p.payment_status 
                FROM PAYMENT p 
                JOIN STUDENT s ON p.student_id=s.student_id ORDER BY p.payment_id DESC`;
         db.query(sql, adminId ? [adminId] : [], (err, r) => {
