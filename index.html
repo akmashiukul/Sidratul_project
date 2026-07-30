@@ -872,7 +872,7 @@ const SECTION_MAP = {
         addLabel: 'Add Payment', sectionTitle: 'Payment',
         fields: [
             { name:'student_id',     label:'Student ID', type:'number', required:true },
-            { name:'amount',         label:'Amount ($)', type:'number', required:true },
+            { name:'amount',         label:'Amount (৳)', type:'number', required:true },
             { name:'payment_month',  label:'Month',      type:'text',   required:true, placeholder:'e.g. July 2026' },
             { name:'payment_method', label:'Method',     type:'select', required:true, options:['bKash','Nagad','Rocket','Credit Card','Bank Transfer','Cash'] },
             { name:'transaction_id', label:'Transaction ID', type:'text', required:false },
@@ -1012,7 +1012,7 @@ async function fetchStats() {
         setStatValue('stat-students',   d.total_students);
         setStatValue('stat-rooms',      d.total_rooms);
         setStatValue('stat-complaints', d.pending_complaints);
-        setStatValue('stat-revenue',    '$' + Number(d.total_revenue).toLocaleString());
+        setStatValue('stat-revenue',    '৳' + Number(d.total_revenue).toLocaleString('en-BD'));
     } catch(_) {}
 }
 
