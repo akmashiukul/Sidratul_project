@@ -80,7 +80,7 @@ CREATE TABLE PAYMENT (
     payment_id      INT            NOT NULL AUTO_INCREMENT,
     student_id      INT            NOT NULL,
     amount          DECIMAL(10,2)  NOT NULL,
-    payment_month   VARCHAR(50)    NOT NULL,
+    payment_month   VARCHAR(255)   NOT NULL,
     payment_method  VARCHAR(50)    NOT NULL DEFAULT 'bKash/Nagad',
     transaction_id  VARCHAR(100)   NULL,
     payment_status  ENUM('Paid','Unpaid','Processing') NOT NULL DEFAULT 'Unpaid',

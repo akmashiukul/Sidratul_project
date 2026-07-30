@@ -40,6 +40,10 @@ db.getConnection((err, conn) => {
         }
     });
 
+    conn.query("ALTER TABLE PAYMENT MODIFY COLUMN payment_month VARCHAR(255) NOT NULL", (e) => {
+        if (!e) console.log('✅ Expanded PAYMENT.payment_month to VARCHAR(255).');
+    });
+
     conn.query("SHOW TABLES LIKE 'TECH_REPORT'", (e2, rows2) => {
         if (!e2 && rows2.length === 0) {
             conn.query(`CREATE TABLE TECH_REPORT (
@@ -527,13 +531,14 @@ app.get('/api/payments', protect('super_admin','admin','student'), (req, res) =>
         const sid = req.user.linked_id;
         const syncSql = `
             INSERT INTO PAYMENT (student_id, amount, payment_month, payment_method, transaction_id, payment_status)
-            SELECT f.student_id, (f.price * f.quantity), CONCAT('Food Order #', f.order_id, ': ', f.food_name, ' (x', f.quantity, ')'), 'N/A', NULL, 'Unpaid'
+            SELECT f.student_id, f.price, SUBSTRING(CONCAT('Food Order #', f.order_id, ': ', f.food_name, ' (x', f.quantity, ')'), 1, 200), 'N/A', NULL, 'Unpaid'
             FROM FOOD_ORDER f
             WHERE f.student_id = ? AND NOT EXISTS (
                 SELECT 1 FROM PAYMENT p WHERE p.student_id = f.student_id AND p.payment_month LIKE CONCAT('Food Order #', f.order_id, ':%')
             )
         `;
-        db.query(syncSql, [sid], () => {
+        db.query(syncSql, [sid], (syncErr) => {
+            if (syncErr) console.error('Sync student food payment warning:', syncErr.message);
             db.query('SELECT payment_id, student_id, amount, payment_month, payment_method, transaction_id, payment_status, DATE_FORMAT(created_at, "%Y-%m-%d") AS created_at FROM PAYMENT WHERE student_id=? ORDER BY payment_id DESC',
                 [sid], (err, r) => { if (err) return res.status(500).json({ error: err.message }); res.json(r); });
         });
@@ -542,13 +547,14 @@ app.get('/api/payments', protect('super_admin','admin','student'), (req, res) =>
     const adminId = getAdminId(req);
     const syncAllSql = `
         INSERT INTO PAYMENT (student_id, amount, payment_month, payment_method, transaction_id, payment_status)
-        SELECT f.student_id, (f.price * f.quantity), CONCAT('Food Order #', f.order_id, ': ', f.food_name, ' (x', f.quantity, ')'), 'N/A', NULL, 'Unpaid'
+        SELECT f.student_id, f.price, SUBSTRING(CONCAT('Food Order #', f.order_id, ': ', f.food_name, ' (x', f.quantity, ')'), 1, 200), 'N/A', NULL, 'Unpaid'
         FROM FOOD_ORDER f
         WHERE NOT EXISTS (
             SELECT 1 FROM PAYMENT p WHERE p.student_id = f.student_id AND p.payment_month LIKE CONCAT('Food Order #', f.order_id, ':%')
         )
     `;
-    db.query(syncAllSql, () => {
+    db.query(syncAllSql, (syncErr) => {
+        if (syncErr) console.error('Sync all food payment warning:', syncErr.message);
         const sql = adminId
             ? `SELECT p.payment_id, p.student_id, s.student_name, s.department, p.amount, p.payment_month, p.payment_method, p.transaction_id, p.payment_status, DATE_FORMAT(p.created_at, "%Y-%m-%d") AS created_at 
                FROM PAYMENT p 
