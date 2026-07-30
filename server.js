@@ -323,24 +323,31 @@ app.get('/api/rooms', protect('super_admin','admin','student'), (req, res) => {
             if (err || !rows.length) return res.json([]);
             const adminId = rows[0].admin_id;
 
-            const sql = `
-                SELECT 
-                    r.room_id, 
-                    r.room_number, 
-                    r.seat_capacity, 
-                    r.room_status,
-                    COUNT(CASE WHEN a.application_status = 'Approved' THEN 1 END) AS occupied_seats,
-                    GREATEST(0, r.seat_capacity - COUNT(CASE WHEN a.application_status = 'Approved' THEN 1 END)) AS available_seats,
-                    MAX(CASE WHEN a.student_id = ? AND a.application_status = 'Approved' THEN 1 ELSE 0 END) AS is_my_room
-                FROM ROOM r
-                LEFT JOIN APPLICATION a ON r.room_id = a.room_id
-                WHERE r.admin_id = ?
-                GROUP BY r.room_id, r.room_number, r.seat_capacity, r.room_status
-                ORDER BY r.room_number ASC
-            `;
-            db.query(sql, [studentId, adminId], (err2, rooms) => {
-                if (err2) return res.status(500).json({ error: err2.message });
-                res.json(rooms);
+            db.query('SELECT room_id FROM APPLICATION WHERE student_id=? AND application_status="Approved" AND room_id IS NOT NULL ORDER BY application_id DESC LIMIT 1', [studentId], (errApp, appRows) => {
+                const myApprovedRoomId = (appRows && appRows.length) ? appRows[0].room_id : null;
+
+                const sql = `
+                    SELECT 
+                        r.room_id, 
+                        r.room_number, 
+                        r.seat_capacity, 
+                        r.room_status,
+                        COUNT(CASE WHEN a.application_status = 'Approved' THEN 1 END) AS occupied_seats,
+                        GREATEST(0, r.seat_capacity - COUNT(CASE WHEN a.application_status = 'Approved' THEN 1 END)) AS available_seats
+                    FROM ROOM r
+                    LEFT JOIN APPLICATION a ON r.room_id = a.room_id
+                    WHERE r.admin_id = ?
+                    GROUP BY r.room_id, r.room_number, r.seat_capacity, r.room_status
+                    ORDER BY r.room_number ASC
+                `;
+                db.query(sql, [adminId], (err2, rooms) => {
+                    if (err2) return res.status(500).json({ error: err2.message });
+                    const result = rooms.map(r => ({
+                        ...r,
+                        is_my_room: (myApprovedRoomId && Number(r.room_id) === Number(myApprovedRoomId)) ? 1 : 0
+                    }));
+                    res.json(result);
+                });
             });
         });
         return;

@@ -464,7 +464,7 @@
         const container = document.getElementById('my-room-container');
         if (!container) return;
 
-        const myRoom = data.find(r => r.is_my_room === 1);
+        const myRoom = data.find(r => Number(r.is_my_room) === 1);
 
         if (myRoom) {
             container.innerHTML = `
