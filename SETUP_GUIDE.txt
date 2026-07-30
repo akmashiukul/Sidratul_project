@@ -35,6 +35,11 @@ STEP 2: DATABASE SETUP (MySQL / XAMPP)
 5. Open the file "schema.sql" from your project folder, copy all text, 
    paste it into phpMyAdmin SQL query window, and click "Go".
 
+* NOTE ON AUTOMATIC MIGRATIONS:
+  The Node.js backend (server.js) automatically checks and applies missing 
+  database tables (e.g. TECH_REPORT) and columns (e.g. room_id in APPLICATION) 
+  whenever the server starts.
+
 * TROUBLESHOOTING (If MySQL in XAMPP fails to start / shuts down unexpectedly):
   - Press Win + R -> type "services.msc" -> Press Enter.
   - Find "MySQL" or "MySQL80" service. If running, right-click -> Stop.
@@ -82,12 +87,24 @@ STEP 5: DEFAULT LOGIN CREDENTIALS
 
 
 ------------------------------------------------------------------------
-STEP 6: ACCESS THE WEBPAGES
+STEP 6: ACCESS THE WEBPAGES & SYSTEM FEATURES
 ------------------------------------------------------------------------
 Open any of the following files directly in your web browser:
 - Login Page:        login.html
 - Student Portal:    student.html
 - Admin Panel:       index.html
 - Super Admin Panel: superadmin.html
+
+KEY SYSTEM FEATURES:
+1. Room Allocation & Change Flow:
+   - Students without a room see "No Room Allocated Yet" with "Apply for Room".
+   - Students with an allocated room see their room details & occupancy, 
+     and their application form changes to "Application for Room Change".
+   - Admin approves applications in index.html to allocate rooms.
+
+2. Admin Floating Tech Support Widget:
+   - Floating "Report Problem" button at the bottom-right of the Admin Panel.
+   - Admins can submit technical issues directly to the Super Admin.
+   - Super Admin manages & resolves reports in superadmin.html.
 
 ========================================================================
