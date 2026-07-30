@@ -22,6 +22,33 @@ const db = mysql.createPool({
 db.getConnection((err, conn) => {
     if (err) { console.error('❌ DB connection failed:', err.message); return; }
     console.log('✅ Connected to MySQL via Pool.');
+
+    // Auto-migrate schema updates if missing
+    conn.query("SHOW COLUMNS FROM APPLICATION LIKE 'room_id'", (e1, rows) => {
+        if (!e1 && rows.length === 0) {
+            conn.query("ALTER TABLE APPLICATION ADD COLUMN room_id INT NULL AFTER student_id", () => {
+                console.log('✅ Auto-added room_id column to APPLICATION table.');
+            });
+        }
+    });
+
+    conn.query("SHOW TABLES LIKE 'TECH_REPORT'", (e2, rows2) => {
+        if (!e2 && rows2.length === 0) {
+            conn.query(`CREATE TABLE TECH_REPORT (
+                report_id INT NOT NULL AUTO_INCREMENT,
+                admin_id INT NOT NULL,
+                report_subject VARCHAR(255) NOT NULL,
+                report_detail TEXT NOT NULL,
+                report_status ENUM('Open','In Progress','Resolved') NOT NULL DEFAULT 'Open',
+                created_at DATETIME DEFAULT NOW(),
+                PRIMARY KEY (report_id),
+                FOREIGN KEY (admin_id) REFERENCES ADMIN(admin_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`, () => {
+                console.log('✅ Auto-created TECH_REPORT table.');
+            });
+        }
+    });
+
     conn.release();
 });
 
