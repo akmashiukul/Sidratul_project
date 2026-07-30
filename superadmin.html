@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin — HMS Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary:#7c3aed; --sidebar-bg:#1e1b4b; --bg:#f5f3ff; --text:#1e1b4b; --muted:#6b7280; }
+        body  { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); }
+
+        .sidebar {
+            width:260px; height:100vh; background:var(--sidebar-bg);
+            position:fixed; top:0; left:0; display:flex; flex-direction:column;
+            box-shadow:4px 0 15px rgba(0,0,0,.2); z-index:1000;
+        }
+        .sidebar-brand { padding:22px 20px; font-size:19px; font-weight:800; color:#fff; display:flex; align-items:center; gap:10px; border-bottom:1px solid rgba(255,255,255,.08); }
+        .sidebar-brand i { color:#a78bfa; font-size:22px; }
+        .sidebar-badge { font-size:10px; background:#7c3aed; color:#fff; padding:2px 8px; border-radius:10px; font-weight:700; letter-spacing:.5px; }
+        .sidebar-nav { padding:12px 0; flex:1; }
+        .sidebar-nav a { display:flex; align-items:center; padding:12px 24px; color:#a5b4fc; text-decoration:none; font-weight:500; font-size:14px; transition:.2s; border-left:3px solid transparent; gap:12px; }
+        .sidebar-nav a i { width:20px; font-size:16px; text-align:center; }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background:rgba(124,58,237,.2); color:#ddd6fe; border-left-color:#7c3aed; font-weight:600; }
+        .sidebar-footer { padding:16px 20px; border-top:1px solid rgba(255,255,255,.08); }
+        .sidebar-user { display:flex; align-items:center; gap:10px; }
+        .sidebar-avatar { width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#7c3aed,#a78bfa); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:14px; flex-shrink:0; }
+        .sidebar-user-info .name { font-size:13px; font-weight:600; color:#e2e8f0; display:block; }
+        .sidebar-user-info .role { font-size:11px; color:#7c3aed; font-weight:600; }
+        .btn-logout { margin-top:10px; width:100%; padding:9px; background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.25); border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; transition:.2s; display:flex; align-items:center; justify-content:center; gap:6px; }
+        .btn-logout:hover { background:rgba(239,68,68,.25); }
+
+        .main-content { margin-left:260px; min-height:100vh; }
+        .top-bar { background:#fff; padding:14px 28px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 0 #ede9fe; position:sticky; top:0; z-index:999; }
+        .top-bar h3 { font-size:18px; font-weight:700; color:var(--text); margin:0; }
+        .top-bar-right { display:flex; align-items:center; gap:12px; }
+        .super-badge { padding:5px 14px; background:linear-gradient(135deg,#7c3aed,#a78bfa); color:#fff; border-radius:20px; font-size:12px; font-weight:700; letter-spacing:.5px; }
+
+        .content { padding:28px; }
+
+        /* STAT CARDS */
+        .stat-card { background:#fff; border-radius:14px; padding:22px; display:flex; align-items:center; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 10px rgba(0,0,0,.04); border:1px solid #ede9fe; margin-bottom:24px; transition:.2s; }
+        .stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(124,58,237,.1); }
+        .stat-icon { width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+        .ic-purple { background:#ede9fe; color:#7c3aed; }
+        .ic-blue   { background:#dbeafe; color:#1d4ed8; }
+        .ic-green  { background:#dcfce7; color:#15803d; }
+        .ic-orange { background:#ffedd5; color:#c2410c; }
+        .stat-info h5 { font-size:11px; color:var(--muted); margin:0; font-weight:700; text-transform:uppercase; letter-spacing:.8px; }
+        .stat-info h2 { font-size:28px; font-weight:800; color:var(--text); margin:4px 0 0; }
+
+        /* TABLE */
+        .table-card { background:#fff; border-radius:14px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 10px rgba(0,0,0,.04); border:1px solid #ede9fe; }
+        .table-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+        .table-header h4 { font-weight:700; margin:0; font-size:16px; }
+        .table thead th { background:#faf5ff; color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.6px; border-bottom:2px solid #ede9fe; padding:12px 14px; }
+        .table tbody td { padding:14px; vertical-align:middle; border-bottom:1px solid #faf5ff; font-size:14px; }
+        .table tbody tr:last-child td { border-bottom:none; }
+        .table tbody tr:hover { background:#fdf4ff; }
+
+        .badge-active   { background:#dcfce7; color:#166534; padding:5px 11px; border-radius:6px; font-size:11px; font-weight:600; }
+        .badge-inactive { background:#fee2e2; color:#991b1b; padding:5px 11px; border-radius:6px; font-size:11px; font-weight:600; }
+
+        .action-btn { border:none; background:transparent; padding:6px 8px; border-radius:6px; cursor:pointer; transition:.2s; }
+        .action-btn:hover { background:#f5f3ff; }
+
+        /* MODAL */
+        .modal-title { font-weight:700; font-size:17px; }
+        .form-label  { font-weight:600; font-size:13px; margin-bottom:5px; }
+        .form-control,.form-select { font-size:14px; border-color:#e2e8f0; border-radius:8px; padding:9px 12px; }
+        .form-control:focus,.form-select:focus { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,.1); }
+
+        .section-div { display:none; }
+        .section-div.active { display:block; animation:fadeIn .3s ease; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .sidebar { width:70px; }
+            .sidebar-brand div, .sidebar-nav a span, .sidebar-user-info, .sidebar-badge { display:none !important; }
+            .sidebar-brand { justify-content:center; padding:16px 0; }
+            .sidebar-nav a { justify-content:center; padding:12px 0; }
+            .sidebar-footer { padding:10px 6px; }
+            .sidebar-user { justify-content:center; }
+            .main-content { margin-left:70px; }
+            .content { padding:16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div class="sidebar-brand">
+        <i class="fa-solid fa-crown"></i>
+        <div>
+            <div>Super Admin</div>
+            <div class="sidebar-badge">GOD MODE</div>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="#" id="nav-dashboard" class="active" onclick="showSection('dashboard',this)"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+        <a href="#" id="nav-admins"    onclick="showSection('admins',this)"><i class="fa-solid fa-user-tie"></i> Manage Admins</a>
+        <a href="#" id="nav-reports"   onclick="showSection('reports',this)"><i class="fa-solid fa-headset"></i> Tech Reports <span id="reports-count-badge" style="background:#ef4444;color:#fff;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;margin-left:auto"></span></a>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="sidebar-avatar" id="sa-avatar">SA</div>
+            <div class="sidebar-user-info">
+                <span class="name" id="sa-name">Super Admin</span>
+                <span class="role">⚡ Super Admin</span>
+            </div>
+        </div>
+        <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="main-content">
+    <div class="top-bar">
+        <h3 id="page-title">System Overview</h3>
+        <div class="top-bar-right">
+            <span class="super-badge">👑 SUPER ADMIN</span>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- DASHBOARD SECTION -->
+        <div id="dashboard-section" class="section-div active">
+            <div class="row">
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon ic-purple"><i class="fa-solid fa-user-tie"></i></div><div class="stat-info"><h5>Total Admins</h5><h2 id="stat-admins">—</h2></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon ic-blue"><i class="fa-solid fa-users"></i></div><div class="stat-info"><h5>Total Students</h5><h2 id="stat-students">—</h2></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon ic-green"><i class="fa-solid fa-door-open"></i></div><div class="stat-info"><h5>Total Rooms</h5><h2 id="stat-rooms">—</h2></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon ic-orange"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="stat-info"><h5>Open Complaints</h5><h2 id="stat-complaints">—</h2></div></div></div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h4><i class="fa-solid fa-list me-2" style="color:#7c3aed"></i>All Registered Admins</h4>
+                    <button class="btn btn-sm px-3" style="background:#7c3aed;color:#fff;border-radius:8px;font-size:13px;font-weight:600" onclick="openCreateAdmin()">
+                        <i class="fa-solid fa-plus me-1"></i>Create Admin
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Students</th><th>Actions</th></tr></thead>
+                        <tbody id="admin-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMINS SECTION -->
+        <div id="admins-section" class="section-div">
+            <div class="table-card">
+                <div class="table-header">
+                    <h4><i class="fa-solid fa-user-tie me-2" style="color:#7c3aed"></i>Admin Accounts</h4>
+                    <button class="btn btn-sm px-3" style="background:#7c3aed;color:#fff;border-radius:8px;font-size:13px;font-weight:600" onclick="openCreateAdmin()">
+                        <i class="fa-solid fa-plus me-1"></i>Create New Admin
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Actions</th></tr></thead>
+                        <tbody id="admin-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TECH REPORTS SECTION -->
+        <div id="reports-section" class="section-div">
+            <div class="table-card">
+                <div class="table-header">
+                    <h4><i class="fa-solid fa-headset me-2" style="color:#7c3aed"></i>Technical Reports from Admins</h4>
+                    <span id="reports-status-info" style="font-size:13px;color:#6b7280;font-weight:600"></span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>ID</th><th>Admin</th><th>Subject</th><th>Details</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                        <tbody id="reports-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- CREATE ADMIN MODAL -->
+<div class="modal fade" id="admin-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title"><i class="fa-solid fa-user-plus me-2" style="color:#7c3aed"></i>Create Admin Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <div class="alert alert-danger d-none" id="modal-error"></div>
+                <div class="mb-3">
+                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="a-name" placeholder="Admin's full name">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="a-email" placeholder="admin@company.com">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="a-pass" placeholder="Minimum 6 characters" minlength="6">
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn px-4 fw-600" style="background:#7c3aed;color:#fff" onclick="createAdmin()">
+                    <i class="fa-solid fa-user-plus me-1"></i>Create Admin
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal fade" id="delete-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg text-center p-4">
+            <div style="width:60px;height:60px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;color:#b91c1c;margin:0 auto 14px">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <h5 class="fw-700 mb-1">Delete Admin?</h5>
+            <p class="text-muted mb-4" id="delete-text" style="font-size:14px"></p>
+            <div class="d-flex gap-2">
+                <button class="btn btn-light flex-fill" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger flex-fill" id="delete-confirm-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+    <div id="app-toast" class="toast align-items-center text-white border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body fw-500" id="toast-body">Message</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API   = 'http://localhost:3000/api';
+    const token = localStorage.getItem('hms_token');
+    const role  = localStorage.getItem('hms_role');
+    const name  = localStorage.getItem('hms_name') || 'Super Admin';
+
+    // Auth guard
+    if (!token || role !== 'super_admin') { window.location.href = 'login.html'; }
+
+    const headers = { 'Content-Type':'application/json', 'Authorization':'Bearer ' + token };
+
+    // Set name
+    document.getElementById('sa-name').textContent = name;
+    document.getElementById('sa-avatar').textContent = name.charAt(0).toUpperCase();
+
+    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+    function showSection(id, el) {
+        document.querySelectorAll('.section-div').forEach(s => s.classList.remove('active'));
+        document.getElementById(id + '-section').classList.add('active');
+        document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+        if (el) el.classList.add('active');
+        const titles = { dashboard: 'System Overview', admins: 'Manage Admins', reports: 'Tech Reports' };
+        document.getElementById('page-title').textContent = titles[id] || id;
+        if (id === 'admins') loadAdminTable();
+        if (id === 'reports') loadTechReports();
+    }
+
+    function showToast(msg, type='success') {
+        const t = document.getElementById('app-toast');
+        document.getElementById('toast-body').textContent = msg;
+        t.className = `toast align-items-center text-white border-0 bg-${type==='success'?'success':'danger'}`;
+        bootstrap.Toast.getOrCreateInstance(t, { delay:3000 }).show();
+    }
+
+    async function loadStats() {
+        try {
+            const res = await fetch(`${API}/stats`, { headers });
+            const d   = await res.json();
+            document.getElementById('stat-students').textContent   = d.total_students   || 0;
+            document.getElementById('stat-rooms').textContent      = d.total_rooms       || 0;
+            document.getElementById('stat-complaints').textContent = d.pending_complaints|| 0;
+        } catch {}
+
+        try {
+            const res = await fetch(`${API}/admins`, { headers });
+            const d   = await res.json();
+            document.getElementById('stat-admins').textContent = d.length || 0;
+            renderAdminList(d);
+        } catch {}
+    }
+
+    function esc(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function renderAdminList(data) {
+        const tbody = document.getElementById('admin-list');
+        if (!tbody) return;
+        tbody.innerHTML = data.map(a => `<tr>
+            <td>${esc(a.admin_id)}</td>
+            <td><strong>${esc(a.admin_name)}</strong></td>
+            <td>${esc(a.admin_email)}</td>
+            <td><span class="badge-active">Active</span></td>
+            <td>
+                <button class="action-btn text-danger" title="Delete" onclick="promptDelete(${a.admin_id},'${esc(a.admin_name)}')">
+                    <i class="fa-regular fa-trash-can"></i>
+                </button>
+            </td>
+        </tr>`).join('');
+    }
+
+    async function loadAdminTable() {
+        try {
+            const res = await fetch(`${API}/admins`, { headers });
+            const d   = await res.json();
+            const tbody = document.getElementById('admin-table');
+            tbody.innerHTML = d.map(a => `<tr>
+                <td>${esc(a.admin_id)}</td>
+                <td><strong>${esc(a.admin_name)}</strong></td>
+                <td>${esc(a.admin_email)}</td>
+                <td>
+                    <button class="action-btn text-danger" title="Delete" onclick="promptDelete(${a.admin_id},'${esc(a.admin_name)}')">
+                        <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                </td>
+            </tr>`).join('');
+        } catch {}
+    }
+
+    // CREATE ADMIN
+    function openCreateAdmin() {
+        document.getElementById('a-name').value  = '';
+        document.getElementById('a-email').value = '';
+        document.getElementById('a-pass').value  = '';
+        document.getElementById('modal-error').classList.add('d-none');
+        new bootstrap.Modal(document.getElementById('admin-modal')).show();
+    }
+
+    async function createAdmin() {
+        const name  = document.getElementById('a-name').value.trim();
+        const email = document.getElementById('a-email').value.trim();
+        const pass  = document.getElementById('a-pass').value;
+        const errEl = document.getElementById('modal-error');
+
+        if (!name || !email || !pass) { errEl.textContent='All fields required.'; errEl.classList.remove('d-none'); return; }
+
+        try {
+            const res  = await fetch(`${API}/auth/create-admin`, {
+                method:'POST', headers,
+                body: JSON.stringify({ name, email, password: pass })
+            });
+            const data = await res.json();
+            if (!res.ok) { errEl.textContent=data.error; errEl.classList.remove('d-none'); return; }
+
+            bootstrap.Modal.getInstance(document.getElementById('admin-modal')).hide();
+            showToast(`Admin "${name}" created successfully!`);
+            loadStats();
+        } catch { errEl.textContent='Server error.'; errEl.classList.remove('d-none'); }
+    }
+
+    // DELETE ADMIN
+    let deleteId = null;
+    function promptDelete(id, name) {
+        deleteId = id;
+        document.getElementById('delete-text').textContent = `"${name}" and all their data will be permanently removed.`;
+        new bootstrap.Modal(document.getElementById('delete-modal')).show();
+    }
+
+    document.getElementById('delete-confirm-btn').addEventListener('click', async () => {
+        if (!deleteId) return;
+        try {
+            const res = await fetch(`${API}/admins/${deleteId}`, { method:'DELETE', headers });
+            if (!res.ok) { const d = await res.json(); showToast(d.error,'error'); return; }
+            bootstrap.Modal.getInstance(document.getElementById('delete-modal')).hide();
+            showToast('Admin deleted.');
+            loadStats();
+        } catch { showToast('Server error.','error'); }
+    });
+
+    // TECH REPORTS
+    async function loadTechReports() {
+        try {
+            const res = await fetch(`${API}/tech_reports`, { headers });
+            const data = await res.json();
+            const tbody = document.getElementById('reports-table');
+            const info = document.getElementById('reports-status-info');
+            const openCount = data.filter(r => r.report_status === 'Open').length;
+            info.textContent = `${data.length} total · ${openCount} open`;
+
+            // Update nav badge
+            const badge = document.getElementById('reports-count-badge');
+            badge.textContent = openCount > 0 ? openCount : '';
+            badge.style.display = openCount > 0 ? 'inline' : 'none';
+
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280"><i class="fa-regular fa-folder-open" style="font-size:30px;display:block;margin-bottom:10px;opacity:.3"></i>No tech reports submitted yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(r => {
+                let statusCls = 'badge-active';
+                let statusStyle = '';
+                if (r.report_status === 'Open') { statusCls = ''; statusStyle = 'background:#fee2e2;color:#991b1b;padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600'; }
+                if (r.report_status === 'In Progress') { statusCls = ''; statusStyle = 'background:#fef3c7;color:#92400e;padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600'; }
+                if (r.report_status === 'Resolved') { statusCls = 'badge-active'; statusStyle = ''; }
+                const statusBadge = statusStyle
+                    ? `<span style="${statusStyle}">${esc(r.report_status)}</span>`
+                    : `<span class="${statusCls}">${esc(r.report_status)}</span>`;
+                return `<tr>
+                    <td>${esc(r.report_id)}</td>
+                    <td><strong>${esc(r.admin_name)}</strong></td>
+                    <td><strong>${esc(r.report_subject)}</strong></td>
+                    <td style="max-width:250px;white-space:normal">${esc(r.report_detail)}</td>
+                    <td>${statusBadge}</td>
+                    <td style="white-space:nowrap">${esc(r.created_at)}</td>
+                    <td>
+                        <select onchange="updateReportStatus(${r.report_id}, this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer">
+                            <option value="Open" ${r.report_status==='Open'?'selected':''}>Open</option>
+                            <option value="In Progress" ${r.report_status==='In Progress'?'selected':''}>In Progress</option>
+                            <option value="Resolved" ${r.report_status==='Resolved'?'selected':''}>Resolved</option>
+                        </select>
+                    </td>
+                </tr>`;
+            }).join('');
+        } catch {}
+    }
+
+    async function updateReportStatus(id, status) {
+        try {
+            const res = await fetch(`${API}/tech_reports/${id}`, {
+                method: 'PUT', headers,
+                body: JSON.stringify({ report_status: status })
+            });
+            if (!res.ok) { showToast('Error updating status', 'error'); return; }
+            showToast(`Report status updated to "${status}"`);
+            loadTechReports();
+        } catch { showToast('Server error', 'error'); }
+    }
+
+    // INIT
+    loadStats();
+    loadTechReports();
+    setInterval(() => { loadStats(); loadTechReports(); }, 5000);
+</script>
+</body>
+</html>
