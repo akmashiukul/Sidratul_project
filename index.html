@@ -1307,6 +1307,8 @@ async function fetchTechReports() {
                 </div>
             </div>`;
         }).join('');
+    } catch (e) {}
+}
 function openGenBillsModal() {
     document.getElementById('gb-month').value = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
     document.getElementById('gb-amount').value = 3500;
